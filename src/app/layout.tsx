@@ -8,6 +8,8 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MyClass - Quản lý dạy học",
   description: "Ứng dụng quản lý lớp học tư",
+  manifest: "/manifest.json",
+  themeColor: "#ec4899",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

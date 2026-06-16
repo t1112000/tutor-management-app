@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  experimental: {
-    instrumentationHook: true,
-  },
+  serverExternalPackages: ["sequelize", "pg", "pg-hstore", "pg-pool", "node-cron"],
 };
 
 module.exports = nextConfig;

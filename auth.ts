@@ -23,7 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (token.uid) {
-        session.user.id = token.uid as number;
+        (session.user as any).id = token.uid;
       }
       return session;
     },
