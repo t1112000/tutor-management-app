@@ -3,7 +3,7 @@ import Google from "next-auth/providers/google";
 
 const allowedEmails = (process.env.ALLOWED_EMAILS ?? "")
   .split(",")
-  .map((e) => e.trim())
+  .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
 export const authConfig: NextAuthConfig = {
@@ -24,10 +24,15 @@ export const authConfig: NextAuthConfig = {
       }
       return true;
     },
-    signIn({ user }) {
+    signIn({ user, account, profile }) {
+      // Require verified email for Google accounts
+      if (account?.provider === "google" && !profile?.email_verified) return false;
       if (!user.email) return false;
-      if (allowedEmails.length === 0) return true; // dev: allow all
-      return allowedEmails.includes(user.email);
+      // Fail-closed: empty allowlist only permitted outside production
+      if (allowedEmails.length === 0) {
+        return process.env.NODE_ENV !== "production";
+      }
+      return allowedEmails.includes(user.email.toLowerCase());
     },
   },
 };
