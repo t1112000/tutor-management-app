@@ -1,14 +1,21 @@
 import { auth } from "../../../../auth";
 import { redirect } from "next/navigation";
+import { User } from "@/lib/db/index";
 import SettingsClient from "@/components/settings/SettingsClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const session = await auth();
   if (!session) redirect("/signin");
+
+  const dbUser = await User.findByPk(session.user.id);
+
   return (
     <SettingsClient
       userEmail={session.user.email ?? ""}
       userName={session.user.name ?? null}
+      notificationsEnabled={dbUser?.pushEnabled ?? false}
     />
   );
 }
