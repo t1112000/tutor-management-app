@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SubjectBadge } from "@/components/ui/subject-badge";
 import { formatMoneyVND, VN_DAY_NAMES } from "@/lib/time";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface Stats {
   activeStudents: number;
@@ -34,18 +35,19 @@ function getGreeting() {
   return "Chào buổi tối!";
 }
 
-const hdrStyle: React.CSSProperties = {
-  height: "64px", padding: "0 32px", display: "flex", alignItems: "center",
-  borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
-};
-
 const cardStyle: React.CSSProperties = {
   background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "20px 22px",
 };
 
 export default function DashboardContent({ userId }: { userId: number }) {
+  const isMobile = useIsMobile();
   const [stats, setStats] = useState<Stats | null>(null);
+
+  const hdrStyle: React.CSSProperties = {
+    height: "64px", padding: isMobile ? "0 16px" : "0 32px", display: "flex", alignItems: "center",
+    borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
+  };
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -97,9 +99,9 @@ export default function DashboardContent({ userId }: { userId: number }) {
       </div>
 
       {/* Body */}
-      <div style={{ padding: "24px 32px" }}>
+      <div style={{ padding: isMobile ? "16px" : "24px 32px" }}>
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
           {/* Students */}
           <div style={cardStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
@@ -136,7 +138,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
         </div>
 
         {/* Bottom: schedule + quick links */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: "20px" }}>
           {/* Today's schedule */}
           <div style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", overflow: "hidden" }}>
             <div style={{ padding: "15px 20px", borderBottom: "1px solid #F4D8DE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
