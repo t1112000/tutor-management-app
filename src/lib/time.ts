@@ -34,13 +34,13 @@ export function formatMoneyVND(amount: number | string): string {
 }
 
 export function formatDateVN(dateStr: string): string {
-  return format(new Date(dateStr + "T00:00:00"), "dd-MM-yyyy");
+  return format(new Date(dateStr + "T00:00:00"), "dd/MM/yyyy");
 }
 
 export function formatWeekRangeVN(ws: string): string {
   const start = new Date(ws + "T00:00:00");
   const end = addDays(start, 6);
-  return `${format(start, "dd-MM")} – ${format(end, "dd-MM-yyyy")}`;
+  return `${format(start, "dd/MM")} – ${format(end, "dd/MM/yyyy")}`;
 }
 
 export const VN_DAY_NAMES = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];

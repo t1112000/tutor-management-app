@@ -37,17 +37,17 @@ const DialogContent = React.forwardRef<
         "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
         "data-[state=open]:duration-300 data-[state=closed]:duration-200",
         // Desktop: centered card
-        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:w-full sm:max-w-lg",
-        "sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg",
-        "sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:slide-in-from-top-[48%]",
-        "sm:data-[state=open]:fade-in-0 sm:data-[state=closed]:fade-out-0",
+        "md:inset-auto md:left-[50%] md:top-[50%] md:bottom-auto md:w-full md:max-w-lg",
+        "md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg",
+        "md:data-[state=open]:slide-in-from-bottom-0 md:data-[state=open]:slide-in-from-top-[48%]",
+        "md:data-[state=open]:fade-in-0 md:data-[state=closed]:fade-out-0",
         "grid gap-4 p-6 shadow-lg",
         className
       )}
       {...props}
     >
       {/* Grab handle — only visible on mobile */}
-      <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted sm:hidden" />
+      <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted md:hidden" />
       {children}
       <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
@@ -59,7 +59,7 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-1.5 text-center md:text-left", className)} {...props} />
 )
 DialogHeader.displayName = "DialogHeader"
 
