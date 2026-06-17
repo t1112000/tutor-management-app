@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Props {
   open: boolean;
@@ -45,29 +51,14 @@ export default function AddStudentDialog({ open, onOpenChange, onCreated }: Prop
     }
   }
 
-  if (!open) return null;
-
   const isEnglish = form.subject === "english";
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(1,1,2,0.50)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={() => onOpenChange(false)}
-    >
-      <div
-        style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "14px", padding: "24px", width: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.18)", animation: "fadeIn 120ms ease" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-          <div style={{ fontSize: "16px", fontWeight: 600, color: "#2C1820" }}>Thêm học sinh mới</div>
-          <button
-            onClick={() => onOpenChange(false)}
-            style={{ width: "28px", height: "28px", background: "#FFF8FA", border: "1px solid #F4D8DE", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px", color: "#A87888", lineHeight: 1 }}
-          >
-            ×
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Thêm học sinh mới</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {/* Name */}
@@ -185,7 +176,7 @@ export default function AddStudentDialog({ open, onOpenChange, onCreated }: Prop
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
