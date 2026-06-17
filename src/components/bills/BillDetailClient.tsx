@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import useIsMobile from "@/hooks/use-is-mobile";
 import { toast } from "sonner";
 import { Calendar, Clock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -112,6 +113,7 @@ function TimeSpinner({
 
 export default function BillDetailClient({ billId }: { billId: number }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [bill, setBill] = useState<Bill | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [timeEdit, setTimeEdit] = useState<{ id: number; start: string; end: string; open: boolean } | null>(null);
@@ -170,7 +172,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Sticky header */}
-      <div style={hdrStyle}>
+      <div style={{ ...hdrStyle, padding: isMobile ? "0 16px" : "0 32px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             onClick={() => router.push(`/students/${bill.student.id}`)}
@@ -188,11 +190,11 @@ export default function BillDetailClient({ billId }: { billId: number }) {
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflow: "auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "16px" : "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
 
         {/* Info card */}
-        <div style={{ ...cardStyle, padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", gap: 48 }}>
+        <div style={{ ...cardStyle, padding: "20px 28px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", gap: isMobile ? "12px" : undefined }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "12px" : "48px" }}>
             <div>
               <div style={labelStyle}>Học sinh</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{bill.student.name}</div>
@@ -277,158 +279,300 @@ export default function BillDetailClient({ billId }: { billId: number }) {
             Danh sách buổi học
           </h2>
 
-          {/* Table header */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "48px 1fr 1fr 88px 1fr",
-            padding: "6px 12px", marginBottom: 2,
-          }}>
-            <span style={colHdr}>#</span>
-            <span style={colHdr}>Ngày</span>
-            <span style={colHdr}>Giờ</span>
-            <span style={{ ...colHdr, textAlign: "center" }}>Đã học</span>
-            <span style={colHdr}>Ghi chú</span>
-          </div>
+          {isMobile ? (
+            /* Mobile: card list per session */
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px 0" }}>
+              {sorted.map((s, i) => (
+                <div key={s.id} style={{
+                  background: s.isAttended ? "#FFF5F8" : "#FFF8FA",
+                  borderRadius: 10, padding: "12px 14px",
+                  border: "1px solid #F4D8DE",
+                }}>
+                  {/* Row 1: index + date + attended checkbox */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, color: "#A87888", fontWeight: 600, minWidth: 20 }}>{i + 1}.</span>
+                      {isPaid ? (
+                        <span style={{ ...badgeStyle, cursor: "default", fontSize: 12 }}>
+                          <Calendar size={11} color="#C4909A" />
+                          {fmtDate(s.scheduledDate)}
+                        </span>
+                      ) : (
+                        <DatePicker
+                          value={s.scheduledDate}
+                          onChange={(d) => saveSession(s.id, { scheduledDate: d })}
+                          trigger={
+                            <span style={{ ...badgeStyle, fontSize: 12 }}>
+                              <Calendar size={11} color="#C4909A" />
+                              {fmtDate(s.scheduledDate)}
+                            </span>
+                          }
+                        />
+                      )}
+                    </div>
+                    <Checkbox
+                      checked={s.isAttended}
+                      onCheckedChange={() => toggleAttended(s.id, s.isAttended)}
+                      disabled={isPaid}
+                    />
+                  </div>
 
-          {/* Rows */}
-          {sorted.map((s, i) => (
-            <div
-              key={s.id}
-              style={{
+                  {/* Row 2: time */}
+                  <div style={{ marginBottom: 8 }}>
+                    {isPaid ? (
+                      <span style={{ ...badgeStyle, cursor: "default", fontSize: 12 }}>
+                        <Clock size={11} color="#C4909A" />
+                        {s.startTime} – {s.endTime}
+                      </span>
+                    ) : (
+                      <Popover
+                        open={timeEdit?.id === s.id && timeEdit.open}
+                        onOpenChange={(o) => {
+                          if (!o && timeEdit?.id === s.id) setTimeEdit(null);
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <span
+                            style={{ ...badgeStyle, fontSize: 12 }}
+                            onClick={() => setTimeEdit({ id: s.id, start: s.startTime, end: s.endTime, open: true })}
+                          >
+                            <Clock size={11} color="#C4909A" />
+                            {s.startTime} – {s.endTime}
+                          </span>
+                        </PopoverTrigger>
+                        <PopoverContent style={{
+                          width: 280, padding: 20, borderRadius: 18,
+                          border: "1px solid #F4D8DE",
+                          boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
+                          background: "white",
+                        }}>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>Chỉnh giờ học</p>
+                          {timeEdit?.id === s.id && (
+                            <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 16 }}>
+                              <TimeSpinner
+                                label="Bắt đầu"
+                                value={timeEdit.start}
+                                onChange={(v) => setTimeEdit({ ...timeEdit, start: v })}
+                              />
+                              <TimeSpinner
+                                label="Kết thúc"
+                                value={timeEdit.end}
+                                onChange={(v) => setTimeEdit({ ...timeEdit, end: v })}
+                              />
+                            </div>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (!timeEdit) return;
+                              await saveSession(s.id, { startTime: timeEdit.start, endTime: timeEdit.end });
+                              setTimeEdit(null);
+                            }}
+                            style={{
+                              width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
+                              background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                              color: "white", fontWeight: 600, fontSize: 13,
+                            }}
+                          >
+                            Lưu
+                          </button>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+
+                  {/* Row 3: notes */}
+                  {editingNotes?.id === s.id ? (
+                    <input
+                      ref={notesRef}
+                      value={editingNotes.value}
+                      onChange={(e) => setEditingNotes({ id: s.id, value: e.target.value })}
+                      onBlur={async () => {
+                        await saveSession(s.id, { notes: editingNotes.value });
+                        setEditingNotes(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        if (e.key === "Escape") setEditingNotes(null);
+                      }}
+                      style={{
+                        width: "100%", height: 32, padding: "0 8px",
+                        background: "#FFF8FA", border: "1px solid #ECC8D0",
+                        borderRadius: 8, fontSize: 13, color: "#2C1820", outline: "none",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      onClick={() => !isPaid && setEditingNotes({ id: s.id, value: s.notes ?? "" })}
+                      style={{
+                        fontSize: 12, color: s.notes ? "#2C1820" : "#D4B0B8",
+                        cursor: isPaid ? "default" : "text",
+                        minHeight: 20, display: "block",
+                        padding: "2px 4px", borderRadius: 6,
+                      }}
+                      title={isPaid ? "" : "Click để chỉnh sửa"}
+                    >
+                      {s.notes || (isPaid ? "" : "Thêm ghi chú...")}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Table header */}
+              <div style={{
                 display: "grid", gridTemplateColumns: "48px 1fr 1fr 88px 1fr",
-                alignItems: "center", padding: "10px 12px", borderRadius: 10,
-                background: s.isAttended ? "#FFF5F8" : "transparent",
-                borderBottom: i < sorted.length - 1 ? "1px solid #F8ECF0" : "none",
-              }}
-            >
-              {/* # */}
-              <span style={{ fontSize: 13, color: "#A87888", fontWeight: 500 }}>{i + 1}</span>
+                padding: "6px 12px", marginBottom: 2,
+              }}>
+                <span style={colHdr}>#</span>
+                <span style={colHdr}>Ngày</span>
+                <span style={colHdr}>Giờ</span>
+                <span style={{ ...colHdr, textAlign: "center" }}>Đã học</span>
+                <span style={colHdr}>Ghi chú</span>
+              </div>
 
-              {/* Date — DatePicker */}
-              {isPaid ? (
-                <span style={{ ...badgeStyle, cursor: "default" }}>
-                  <Calendar size={12} color="#C4909A" />
-                  {fmtDate(s.scheduledDate)}
-                </span>
-              ) : (
-                <DatePicker
-                  value={s.scheduledDate}
-                  onChange={(d) => saveSession(s.id, { scheduledDate: d })}
-                  trigger={
-                    <span style={badgeStyle}>
+              {/* Rows */}
+              {sorted.map((s, i) => (
+                <div
+                  key={s.id}
+                  style={{
+                    display: "grid", gridTemplateColumns: "48px 1fr 1fr 88px 1fr",
+                    alignItems: "center", padding: "10px 12px", borderRadius: 10,
+                    background: s.isAttended ? "#FFF5F8" : "transparent",
+                    borderBottom: i < sorted.length - 1 ? "1px solid #F8ECF0" : "none",
+                  }}
+                >
+                  {/* # */}
+                  <span style={{ fontSize: 13, color: "#A87888", fontWeight: 500 }}>{i + 1}</span>
+
+                  {/* Date — DatePicker */}
+                  {isPaid ? (
+                    <span style={{ ...badgeStyle, cursor: "default" }}>
                       <Calendar size={12} color="#C4909A" />
                       {fmtDate(s.scheduledDate)}
                     </span>
-                  }
-                />
-              )}
+                  ) : (
+                    <DatePicker
+                      value={s.scheduledDate}
+                      onChange={(d) => saveSession(s.id, { scheduledDate: d })}
+                      trigger={
+                        <span style={badgeStyle}>
+                          <Calendar size={12} color="#C4909A" />
+                          {fmtDate(s.scheduledDate)}
+                        </span>
+                      }
+                    />
+                  )}
 
-              {/* Time — custom popover */}
-              {isPaid ? (
-                <span style={{ ...badgeStyle, cursor: "default" }}>
-                  <Clock size={12} color="#C4909A" />
-                  {s.startTime} – {s.endTime}
-                </span>
-              ) : (
-                <Popover
-                  open={timeEdit?.id === s.id && timeEdit.open}
-                  onOpenChange={(o) => {
-                    if (!o && timeEdit?.id === s.id) setTimeEdit(null);
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <span
-                      style={badgeStyle}
-                      onClick={() => setTimeEdit({ id: s.id, start: s.startTime, end: s.endTime, open: true })}
-                    >
+                  {/* Time — custom popover */}
+                  {isPaid ? (
+                    <span style={{ ...badgeStyle, cursor: "default" }}>
                       <Clock size={12} color="#C4909A" />
                       {s.startTime} – {s.endTime}
                     </span>
-                  </PopoverTrigger>
-                  <PopoverContent style={{
-                    width: 280, padding: 20, borderRadius: 18,
-                    border: "1px solid #F4D8DE",
-                    boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
-                    background: "white",
-                  }}>
-                    <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>Chỉnh giờ học</p>
-                    {timeEdit?.id === s.id && (
-                      <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 16 }}>
-                        <TimeSpinner
-                          label="Bắt đầu"
-                          value={timeEdit.start}
-                          onChange={(v) => setTimeEdit({ ...timeEdit, start: v })}
-                        />
-                        <TimeSpinner
-                          label="Kết thúc"
-                          value={timeEdit.end}
-                          onChange={(v) => setTimeEdit({ ...timeEdit, end: v })}
-                        />
-                      </div>
-                    )}
-                    <button
-                      onClick={async () => {
-                        if (!timeEdit) return;
-                        await saveSession(s.id, { startTime: timeEdit.start, endTime: timeEdit.end });
-                        setTimeEdit(null);
-                      }}
-                      style={{
-                        width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
-                        background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
-                        color: "white", fontWeight: 600, fontSize: 13,
+                  ) : (
+                    <Popover
+                      open={timeEdit?.id === s.id && timeEdit.open}
+                      onOpenChange={(o) => {
+                        if (!o && timeEdit?.id === s.id) setTimeEdit(null);
                       }}
                     >
-                      Lưu
-                    </button>
-                  </PopoverContent>
-                </Popover>
-              )}
+                      <PopoverTrigger asChild>
+                        <span
+                          style={badgeStyle}
+                          onClick={() => setTimeEdit({ id: s.id, start: s.startTime, end: s.endTime, open: true })}
+                        >
+                          <Clock size={12} color="#C4909A" />
+                          {s.startTime} – {s.endTime}
+                        </span>
+                      </PopoverTrigger>
+                      <PopoverContent style={{
+                        width: 280, padding: 20, borderRadius: 18,
+                        border: "1px solid #F4D8DE",
+                        boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
+                        background: "white",
+                      }}>
+                        <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>Chỉnh giờ học</p>
+                        {timeEdit?.id === s.id && (
+                          <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 16 }}>
+                            <TimeSpinner
+                              label="Bắt đầu"
+                              value={timeEdit.start}
+                              onChange={(v) => setTimeEdit({ ...timeEdit, start: v })}
+                            />
+                            <TimeSpinner
+                              label="Kết thúc"
+                              value={timeEdit.end}
+                              onChange={(v) => setTimeEdit({ ...timeEdit, end: v })}
+                            />
+                          </div>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (!timeEdit) return;
+                            await saveSession(s.id, { startTime: timeEdit.start, endTime: timeEdit.end });
+                            setTimeEdit(null);
+                          }}
+                          style={{
+                            width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
+                            background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                            color: "white", fontWeight: 600, fontSize: 13,
+                          }}
+                        >
+                          Lưu
+                        </button>
+                      </PopoverContent>
+                    </Popover>
+                  )}
 
-              {/* Attended checkbox */}
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <Checkbox
-                  checked={s.isAttended}
-                  onCheckedChange={() => toggleAttended(s.id, s.isAttended)}
-                  disabled={isPaid}
-                />
-              </div>
+                  {/* Attended checkbox */}
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <Checkbox
+                      checked={s.isAttended}
+                      onCheckedChange={() => toggleAttended(s.id, s.isAttended)}
+                      disabled={isPaid}
+                    />
+                  </div>
 
-              {/* Notes — inline edit */}
-              {editingNotes?.id === s.id ? (
-                <input
-                  ref={notesRef}
-                  value={editingNotes.value}
-                  onChange={(e) => setEditingNotes({ id: s.id, value: e.target.value })}
-                  onBlur={async () => {
-                    await saveSession(s.id, { notes: editingNotes.value });
-                    setEditingNotes(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                    if (e.key === "Escape") setEditingNotes(null);
-                  }}
-                  style={{
-                    width: "100%", height: 32, padding: "0 8px",
-                    background: "#FFF8FA", border: "1px solid #ECC8D0",
-                    borderRadius: 8, fontSize: 13, color: "#2C1820", outline: "none",
-                  }}
-                />
-              ) : (
-                <span
-                  onClick={() => !isPaid && setEditingNotes({ id: s.id, value: s.notes ?? "" })}
-                  style={{
-                    fontSize: 13, color: s.notes ? "#2C1820" : "#D4B0B8",
-                    cursor: isPaid ? "default" : "text",
-                    minHeight: 24, display: "block",
-                    padding: "4px 6px", borderRadius: 6,
-                    transition: "background 120ms ease",
-                  }}
-                  title={isPaid ? "" : "Click để chỉnh sửa"}
-                >
-                  {s.notes || (isPaid ? "" : "Thêm ghi chú...")}
-                </span>
-              )}
-            </div>
-          ))}
+                  {/* Notes — inline edit */}
+                  {editingNotes?.id === s.id ? (
+                    <input
+                      ref={notesRef}
+                      value={editingNotes.value}
+                      onChange={(e) => setEditingNotes({ id: s.id, value: e.target.value })}
+                      onBlur={async () => {
+                        await saveSession(s.id, { notes: editingNotes.value });
+                        setEditingNotes(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        if (e.key === "Escape") setEditingNotes(null);
+                      }}
+                      style={{
+                        width: "100%", height: 32, padding: "0 8px",
+                        background: "#FFF8FA", border: "1px solid #ECC8D0",
+                        borderRadius: 8, fontSize: 13, color: "#2C1820", outline: "none",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      onClick={() => !isPaid && setEditingNotes({ id: s.id, value: s.notes ?? "" })}
+                      style={{
+                        fontSize: 13, color: s.notes ? "#2C1820" : "#D4B0B8",
+                        cursor: isPaid ? "default" : "text",
+                        minHeight: 24, display: "block",
+                        padding: "4px 6px", borderRadius: 6,
+                        transition: "background 120ms ease",
+                      }}
+                      title={isPaid ? "" : "Click để chỉnh sửa"}
+                    >
+                      {s.notes || (isPaid ? "" : "Thêm ghi chú...")}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>
