@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
 import { Switch } from "@/components/ui/switch";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface Props {
   userEmail: string;
@@ -62,6 +63,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function SettingsClient({ userEmail, userName, notificationsEnabled: initialEnabled }: Props) {
+  const isMobile = useIsMobile();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
 
@@ -97,7 +99,7 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
   }
 
   const hdrStyle: React.CSSProperties = {
-    height: "64px", padding: "0 32px", display: "flex", alignItems: "center",
+    height: "64px", padding: isMobile ? "0 16px" : "0 32px", display: "flex", alignItems: "center",
     borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
     backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
   };
@@ -110,7 +112,7 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
         </h1>
       </div>
 
-    <div style={{ padding: "24px 32px", maxWidth: "560px" }}>
+    <div style={{ padding: isMobile ? "16px" : "24px 32px", maxWidth: "560px", width: "100%" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
         {/* Notifications */}
         <div style={cardStyle}>
