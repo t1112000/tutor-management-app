@@ -12,6 +12,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatMoneyVND, formatDateVN } from "@/lib/time";
 import { STUDENT_COLORS } from "@/lib/student-colors";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface Schedule {
   id: number;
@@ -99,6 +100,7 @@ const hdrStyle: React.CSSProperties = {
 
 export default function StudentDetailClient({ studentId }: { studentId: number }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [student, setStudent] = useState<Student | null>(null);
   const [form, setForm] = useState<FormData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -201,7 +203,7 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
       {/* ── Sticky header ── */}
-      <div style={hdrStyle}>
+      <div style={{ ...hdrStyle, padding: isMobile ? "0 16px" : "0 32px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Link
             href="/students"
@@ -231,7 +233,7 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
       </div>
 
       {/* ── Scrollable content ── */}
-      <div style={{ flex: 1, overflow: "auto", padding: "24px 32px" }}>
+      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "16px" : "24px 32px" }}>
 
         {/* ── Info card ── */}
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24, marginBottom: 20 }}>
@@ -257,7 +259,7 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
 
           {isEditing ? (
             /* ── Edit mode ── */
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px 24px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <span style={labelStyle}>Họ và tên</span>
                 <Input value={form.name} onChange={(e) => updateForm({ name: e.target.value })} placeholder="Nhập họ và tên" style={inputStyle} />
@@ -411,10 +413,11 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
           setAddPicker={setAddPicker}
           removeSchedule={removeSchedule}
           addSchedule={addSchedule}
+          isMobile={isMobile}
         />
 
         {/* ── Bills table ── */}
-        <BillsTable bills={student.bills} />
+        <BillsTable bills={student.bills} studentId={studentId} isMobile={isMobile} />
 
       </div>
     </div>
@@ -511,130 +514,224 @@ interface ScheduleCardProps {
   setAddPicker: React.Dispatch<React.SetStateAction<AddPicker | null>>;
   removeSchedule: (id: number) => void;
   addSchedule: (dow: number, start: string, end: string) => void;
+  isMobile: boolean;
 }
 
-function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSchedule }: ScheduleCardProps) {
+function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSchedule, isMobile }: ScheduleCardProps) {
   return (
     <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24, marginBottom: 20 }}>
       <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: "0 0 20px" }}>
         Lịch dạy cố định hàng tuần
       </h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
-        {DAY_NAMES.map((dayName, idx) => {
-          const dow = DAY_VALUES[idx];
-          const daySchedules = student.schedules.filter((s) => s.dayOfWeek === dow);
-          const isOpen = addPicker?.dayOfWeek === dow;
+      {isMobile ? (
+        /* ── Mobile: vertical list of days with schedules ── */
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {DAY_NAMES.map((dayName, idx) => {
+            const dow = DAY_VALUES[idx];
+            const daySchedules = student.schedules.filter((s) => s.dayOfWeek === dow);
+            const isOpen = addPicker?.dayOfWeek === dow;
 
-          return (
-            <div
-              key={dow}
-              style={{
-                border: "1px dashed #F4D8DE", borderRadius: 12, padding: 10,
-                minHeight: 140, display: "flex", flexDirection: "column", gap: 6,
-              }}
-            >
-              <div style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "#A87888", marginBottom: 4 }}>
-                {dayName}
-              </div>
-
-              {daySchedules.map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    background: "#EBF3FD", border: "1px solid #BEDAF5",
-                    borderRadius: 8, padding: "6px 8px", position: "relative",
-                  }}
-                >
-                  <button
-                    onClick={() => removeSchedule(s.id)}
-                    style={{
-                      position: "absolute", top: 4, right: 4,
-                      background: "#FECACA", border: "none", borderRadius: "50%",
-                      width: 18, height: 18, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                    }}
-                  >
-                    <X size={10} color="#EF4444" />
-                  </button>
-                  <div style={{ fontSize: 10, color: "#6B7280" }}>Bắt đầu</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#3B82F6" }}>{s.startTime}</div>
-                  <div style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>Kết thúc</div>
-                  <div style={{ fontSize: 13, color: "#4B5563" }}>{s.endTime}</div>
-                </div>
-              ))}
-
-              {/* Combined start+end picker */}
-              <Popover
-                open={isOpen}
-                onOpenChange={(o) => { if (!o) setAddPicker(null); }}
-              >
-                <PopoverTrigger asChild>
-                  <button
-                    onClick={() => setAddPicker({ dayOfWeek: dow, startTime: "07:00", endTime: "08:00" })}
-                    style={{
-                      marginTop: "auto", width: "100%", height: 32,
-                      background: "none", border: "1px dashed #F4D8DE",
-                      borderRadius: 8, cursor: "pointer", color: "#C4A0A8",
-                      fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
-                    +
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent style={{
-                  width: 320, padding: 20, borderRadius: 20,
-                  border: "1px solid #F4D8DE",
-                  boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
-                  background: "white",
-                }}>
-                  <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>
-                    Thêm lịch — {dayName}
-                  </p>
-                  {isOpen && addPicker && (
-                    <>
-                      <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
-                        <TimeSpinnerCol
-                          label="Bắt đầu"
-                          time={addPicker.startTime}
-                          onChange={(v) => setAddPicker((p) => p ? { ...p, startTime: v, endTime: addOneHour(v) } : p)}
-                        />
-                        <span style={{ fontSize: 20, color: "#D4A0B0", marginTop: 16 }}>→</span>
-                        <TimeSpinnerCol
-                          label="Kết thúc"
-                          time={addPicker.endTime}
-                          onChange={(v) => setAddPicker((p) => p ? { ...p, endTime: v } : p)}
-                        />
-                      </div>
+            return (
+              <div key={dow} style={{ background: "#FFF8FA", borderRadius: 10, padding: "10px 14px", border: "1px solid #F4D8DE" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: daySchedules.length > 0 ? 8 : 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#2C1820" }}>{dayName}</div>
+                  <Popover open={isOpen} onOpenChange={(o) => { if (!o) setAddPicker(null); }}>
+                    <PopoverTrigger asChild>
                       <button
-                        onClick={() => {
-                          addSchedule(addPicker.dayOfWeek, addPicker.startTime, addPicker.endTime);
-                        }}
+                        onClick={() => setAddPicker({ dayOfWeek: dow, startTime: "07:00", endTime: "08:00" })}
                         style={{
-                          width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
-                          background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
-                          color: "white", fontWeight: 600, fontSize: 13,
+                          background: "none", border: "1px dashed #F4D8DE", borderRadius: 6,
+                          width: 26, height: 26, cursor: "pointer", color: "#C4A0A8",
+                          fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
                         }}
                       >
-                        Xác nhận
+                        +
                       </button>
-                    </>
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
-          );
-        })}
-      </div>
+                    </PopoverTrigger>
+                    <PopoverContent style={{
+                      width: 320, padding: 20, borderRadius: 20,
+                      border: "1px solid #F4D8DE",
+                      boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
+                      background: "white",
+                    }}>
+                      <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>
+                        Thêm lịch — {dayName}
+                      </p>
+                      {isOpen && addPicker && (
+                        <>
+                          <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+                            <TimeSpinnerCol
+                              label="Bắt đầu"
+                              time={addPicker.startTime}
+                              onChange={(v) => setAddPicker((p) => p ? { ...p, startTime: v, endTime: addOneHour(v) } : p)}
+                            />
+                            <span style={{ fontSize: 20, color: "#D4A0B0", marginTop: 16 }}>→</span>
+                            <TimeSpinnerCol
+                              label="Kết thúc"
+                              time={addPicker.endTime}
+                              onChange={(v) => setAddPicker((p) => p ? { ...p, endTime: v } : p)}
+                            />
+                          </div>
+                          <button
+                            onClick={() => { addSchedule(addPicker.dayOfWeek, addPicker.startTime, addPicker.endTime); }}
+                            style={{
+                              width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
+                              background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                              color: "white", fontWeight: 600, fontSize: 13,
+                            }}
+                          >
+                            Xác nhận
+                          </button>
+                        </>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {daySchedules.map((s) => (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: "#A87888", fontFamily: "monospace" }}>
+                      {s.startTime} – {s.endTime}
+                    </span>
+                    <button
+                      onClick={() => removeSchedule(s.id)}
+                      style={{
+                        background: "#FECACA", border: "none", borderRadius: "50%",
+                        width: 18, height: 18, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <X size={10} color="#EF4444" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Desktop: 7-column grid ── */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+          {DAY_NAMES.map((dayName, idx) => {
+            const dow = DAY_VALUES[idx];
+            const daySchedules = student.schedules.filter((s) => s.dayOfWeek === dow);
+            const isOpen = addPicker?.dayOfWeek === dow;
+
+            return (
+              <div
+                key={dow}
+                style={{
+                  border: "1px dashed #F4D8DE", borderRadius: 12, padding: 10,
+                  minHeight: 140, display: "flex", flexDirection: "column", gap: 6,
+                }}
+              >
+                <div style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "#A87888", marginBottom: 4 }}>
+                  {dayName}
+                </div>
+
+                {daySchedules.map((s) => (
+                  <div
+                    key={s.id}
+                    style={{
+                      background: "#EBF3FD", border: "1px solid #BEDAF5",
+                      borderRadius: 8, padding: "6px 8px", position: "relative",
+                    }}
+                  >
+                    <button
+                      onClick={() => removeSchedule(s.id)}
+                      style={{
+                        position: "absolute", top: 4, right: 4,
+                        background: "#FECACA", border: "none", borderRadius: "50%",
+                        width: 18, height: 18, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                      }}
+                    >
+                      <X size={10} color="#EF4444" />
+                    </button>
+                    <div style={{ fontSize: 10, color: "#6B7280" }}>Bắt đầu</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#3B82F6" }}>{s.startTime}</div>
+                    <div style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>Kết thúc</div>
+                    <div style={{ fontSize: 13, color: "#4B5563" }}>{s.endTime}</div>
+                  </div>
+                ))}
+
+                {/* Combined start+end picker */}
+                <Popover
+                  open={isOpen}
+                  onOpenChange={(o) => { if (!o) setAddPicker(null); }}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      onClick={() => setAddPicker({ dayOfWeek: dow, startTime: "07:00", endTime: "08:00" })}
+                      style={{
+                        marginTop: "auto", width: "100%", height: 32,
+                        background: "none", border: "1px dashed #F4D8DE",
+                        borderRadius: 8, cursor: "pointer", color: "#C4A0A8",
+                        fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      +
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent style={{
+                    width: 320, padding: 20, borderRadius: 20,
+                    border: "1px solid #F4D8DE",
+                    boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
+                    background: "white",
+                  }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>
+                      Thêm lịch — {dayName}
+                    </p>
+                    {isOpen && addPicker && (
+                      <>
+                        <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+                          <TimeSpinnerCol
+                            label="Bắt đầu"
+                            time={addPicker.startTime}
+                            onChange={(v) => setAddPicker((p) => p ? { ...p, startTime: v, endTime: addOneHour(v) } : p)}
+                          />
+                          <span style={{ fontSize: 20, color: "#D4A0B0", marginTop: 16 }}>→</span>
+                          <TimeSpinnerCol
+                            label="Kết thúc"
+                            time={addPicker.endTime}
+                            onChange={(v) => setAddPicker((p) => p ? { ...p, endTime: v } : p)}
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            addSchedule(addPicker.dayOfWeek, addPicker.startTime, addPicker.endTime);
+                          }}
+                          style={{
+                            width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
+                            background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                            color: "white", fontWeight: 600, fontSize: 13,
+                          }}
+                        >
+                          Xác nhận
+                        </button>
+                      </>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 interface BillsTableProps {
   bills: BillSummary[];
+  studentId: number;
+  isMobile: boolean;
 }
 
-function BillsTable({ bills }: BillsTableProps) {
+function BillsTable({ bills, isMobile }: BillsTableProps) {
+  const router = useRouter();
   return (
     <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -644,7 +741,53 @@ function BillsTable({ bills }: BillsTableProps) {
 
       {bills.length === 0 ? (
         <p style={{ color: "#C4A0A8", fontSize: 14 }}>Chưa có hóa đơn</p>
+      ) : isMobile ? (
+        /* ── Mobile: card list ── */
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {bills.map((b) => {
+            const attended = b.sessions?.filter((s) => s.isAttended).length ?? 0;
+            const pct = b.sessionCount > 0 ? Math.round((attended / b.sessionCount) * 100) : 0;
+            const isPaid = b.status === "paid";
+            return (
+              <div
+                key={b.id}
+                onClick={() => router.push(`/bills/${b.id}`)}
+                style={{
+                  background: "white", border: "1px solid #F4D8DE", borderRadius: 12,
+                  padding: "14px 16px", cursor: "pointer",
+                }}
+              >
+                {/* Top row: status badge + date */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20,
+                    background: isPaid ? "#DCFCE7" : "#FEF9C3",
+                    color: isPaid ? "#16A34A" : "#A16207",
+                  }}>
+                    {isPaid ? "Đã thu" : "Chưa thanh toán"}
+                  </span>
+                  <span style={{ fontSize: 13, color: "#6B7280" }}>
+                    {b.startDate ? formatDateVN(b.startDate) : "—"}
+                  </span>
+                </div>
+                {/* Bottom row: progress + amount */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 64, height: 6, background: "#F4D8DE", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: "#6BA8F0", borderRadius: 99 }} />
+                    </div>
+                    <span style={{ fontSize: 12, color: "#6B7280" }}>{attended}/{b.sessionCount} buổi</span>
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>
+                    {formatMoneyVND(b.totalAmount)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
+        /* ── Desktop: table ── */
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
