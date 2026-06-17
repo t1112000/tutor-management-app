@@ -421,4 +421,85 @@ function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSch
     </div>
   );
 }
-function BillsTable(_: any) { return null; }
+interface BillsTableProps {
+  bills: BillSummary[];
+  studentId: number;
+}
+
+function BillsTable({ bills, studentId }: BillsTableProps) {
+  return (
+    <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: 0 }}>Lịch sử hóa đơn</h2>
+        <span style={{ fontSize: 13, color: "#A87888" }}>{bills.length} hóa đơn</span>
+      </div>
+
+      {bills.length === 0 ? (
+        <p style={{ color: "#C4A0A8", fontSize: 14 }}>Chưa có hóa đơn</p>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              {["NGÀY BẮT ĐẦU", "TIẾN ĐỘ", "SỐ TIỀN", "TRẠNG THÁI", "XEM"].map((col) => (
+                <th
+                  key={col}
+                  style={{
+                    textAlign: "left", fontSize: 11, fontWeight: 600, color: "#C4A0A8",
+                    textTransform: "uppercase", letterSpacing: "0.06em",
+                    paddingBottom: 12, borderBottom: "1px solid #F4D8DE",
+                  }}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {bills.map((b) => {
+              const attended = b.sessions?.filter((s) => s.isAttended).length ?? 0;
+              const pct = b.sessionCount > 0 ? Math.round((attended / b.sessionCount) * 100) : 0;
+              const isPaid = b.status === "paid";
+              return (
+                <tr key={b.id} style={{ borderBottom: "1px solid #F9F0F2" }}>
+                  <td style={{ padding: "14px 0", fontSize: 14, color: "#2C1820" }}>
+                    {b.startDate ? formatDateVN(b.startDate) : "—"}
+                  </td>
+                  <td style={{ padding: "14px 16px 14px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 80, height: 6, background: "#F4D8DE", borderRadius: 99, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: "#6BA8F0", borderRadius: 99 }} />
+                      </div>
+                      <span style={{ fontSize: 13, color: "#6B7280", whiteSpace: "nowrap" }}>
+                        {attended}/{b.sessionCount} buổi
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "14px 16px 14px 0", fontSize: 14, fontWeight: 600, color: "#2C1820" }}>
+                    {formatMoneyVND(b.totalAmount)}
+                  </td>
+                  <td style={{ padding: "14px 16px 14px 0" }}>
+                    <span style={{
+                      fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20,
+                      background: isPaid ? "#DCFCE7" : "#FEF9C3",
+                      color: isPaid ? "#16A34A" : "#A16207",
+                    }}>
+                      {isPaid ? "Đã thu" : "Chưa thanh toán"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 0" }}>
+                    <Link
+                      href={`/bills/${b.id}`}
+                      style={{ fontSize: 13, fontWeight: 600, color: "#E8788A", textDecoration: "none" }}
+                    >
+                      Xem →
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
