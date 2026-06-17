@@ -32,7 +32,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Mobile: bottom sheet
-        "fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl bg-background pb-safe",
+        "fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl bg-background pb-safe max-h-[90dvh] overflow-y-auto",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
         "data-[state=open]:duration-300 data-[state=closed]:duration-200",
