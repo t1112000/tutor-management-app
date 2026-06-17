@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { generateSessions } from "@/lib/generateSessions";
 import { todayVN } from "@/lib/time";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface Schedule {
   id: number;
@@ -43,22 +44,11 @@ function formatAmount(val: string) {
   return n.toLocaleString("vi-VN") + " đ";
 }
 
-const hdrStyle: React.CSSProperties = {
-  height: 64,
-  padding: "0 32px",
-  display: "flex",
-  alignItems: "center",
-  borderBottom: "1px solid #F4D8DE",
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(12px)",
-  position: "sticky",
-  top: 0,
-  zIndex: 10,
-  flexShrink: 0,
-};
+// hdrStyle is now built dynamically inside the component (depends on isMobile)
 
 export default function CreateBillClient({ studentId }: { studentId: number }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [student, setStudent] = useState<Student | null>(null);
   const [sessionCount, setSessionCount] = useState("8");
   const [totalAmount, setTotalAmount] = useState("");
@@ -143,6 +133,20 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
     }
   }
 
+  const hdrStyle: React.CSSProperties = {
+    height: 64,
+    padding: isMobile ? "0 16px" : "0 32px",
+    display: "flex",
+    alignItems: "center",
+    borderBottom: "1px solid #F4D8DE",
+    background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(12px)",
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+    flexShrink: 0,
+  };
+
   if (!student) {
     return (
       <div
@@ -154,7 +158,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
         }}
       >
         <div style={hdrStyle} />
-        <div style={{ padding: 32, color: "#A87888" }}>Đang tải...</div>
+        <div style={{ padding: isMobile ? 16 : 32, color: "#A87888" }}>Đang tải...</div>
       </div>
     );
   }
@@ -199,9 +203,9 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 32 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px" : "24px 32px" }}>
         <div
-          style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: 24 }}
+          style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 3fr", gap: 24 }}
         >
           {/* Left: bill settings */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -297,6 +301,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                     value={startDate}
                     onChange={setStartDate}
                     placeholder="Chọn ngày bắt đầu"
+                    style={{ width: isMobile ? "100%" : undefined }}
                   />
                 </div>
                 <div>
@@ -357,6 +362,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
               overflow: "hidden",
             }}
           >
+
             {/* Title row — padded separately */}
             <div
               style={{
@@ -422,6 +428,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
             ) : (
               <>
                 {/* Table full-width, padding on cells */}
+                <div style={{ overflowX: isMobile ? "auto" : undefined }}>
                 <table
                   style={{
                     width: "100%",
@@ -515,7 +522,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                                   updateSession(i, "scheduledDate", v)
                                 }
                                 placeholder="Chọn ngày"
-                                style={{ height: 36, fontSize: 13 }}
+                                style={{ height: 44, fontSize: 13, width: isMobile ? "100%" : undefined }}
                               />
                             </td>
                             <td style={{ padding: "8px 16px 8px 0" }}>
@@ -534,9 +541,10 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                                 <button
                                   type="button"
                                   style={{
-                                    height: 36,
+                                    height: 44,
                                     padding: "0 12px",
                                     minWidth: 80,
+                                    width: isMobile ? "100%" : undefined,
                                     background: "#FFF8FA",
                                     border: "1px solid #ECC8D0",
                                     borderRadius: 10,
@@ -564,9 +572,10 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                                 <button
                                   type="button"
                                   style={{
-                                    height: 36,
+                                    height: 44,
                                     padding: "0 12px",
                                     minWidth: 80,
+                                    width: isMobile ? "100%" : undefined,
                                     background: "#FFF8FA",
                                     border: "1px solid #ECC8D0",
                                     borderRadius: 10,
@@ -635,6 +644,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
 
                 {isEditing && (
                   <button
