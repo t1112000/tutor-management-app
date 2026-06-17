@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SubjectBadge } from "@/components/ui/subject-badge";
-import { weekStartStr, addDaysStr, formatWeekRangeVN, vnDayName } from "@/lib/time";
 import Link from "next/link";
+import { weekStartStr, addDaysStr, formatWeekRangeVN } from "@/lib/time";
+import { findColor, hashColor } from "@/lib/student-colors";
 
 interface Session {
   id: number;
@@ -15,19 +13,32 @@ interface Session {
   isAttended: boolean;
   bill: {
     id: number;
-    student: { name: string; subject: "english" | "chinese" };
+    student: { name: string; subject: "english" | "chinese"; color: string | null };
   };
 }
 
-function timeToMinutes(t: string): number {
+const HOUR_H = 64;
+const GRID_S = 7;
+const GRID_HOURS = 13;
+const GRID_H = GRID_HOURS * HOUR_H;
+
+function getColor(student: { name: string; color: string | null }) {
+  if (student.color) return findColor(student.color);
+  return hashColor(student.name);
+}
+
+function pt(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 }
 
-const HOUR_START = 7;
-const HOUR_END = 21;
-const TOTAL_MINUTES = (HOUR_END - HOUR_START) * 60;
-const GRID_HEIGHT = 600; // px
+const hdrStyle: React.CSSProperties = {
+  height: "64px", padding: "0 32px", display: "flex", alignItems: "center",
+  borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
+  backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
+};
+
+const DAY_NAMES = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 export default function CalendarClient() {
   const [weekStart, setWeekStart] = useState(() => weekStartStr(new Date().toISOString().slice(0, 10)));
@@ -43,101 +54,129 @@ export default function CalendarClient() {
   }, [weekStart]);
 
   const days = Array.from({ length: 7 }, (_, i) => addDaysStr(weekStart, i));
-
-  function prevWeek() { setWeekStart((ws) => addDaysStr(ws, -7)); }
-  function nextWeek() { setWeekStart((ws) => addDaysStr(ws, 7)); }
-
-  function getSessionsForDay(date: string) {
-    return sessions.filter((s) => s.scheduledDate === date);
-  }
-
-  function sessionStyle(s: Session) {
-    const startMin = timeToMinutes(s.startTime) - HOUR_START * 60;
-    const endMin = timeToMinutes(s.endTime) - HOUR_START * 60;
-    const top = (startMin / TOTAL_MINUTES) * GRID_HEIGHT;
-    const height = Math.max(((endMin - startMin) / TOTAL_MINUTES) * GRID_HEIGHT, 32);
-    return { top: `${top}px`, height: `${height}px` };
-  }
-
   const today = new Date().toISOString().slice(0, 10);
 
+  const navBtnStyle: React.CSSProperties = {
+    width: "32px", height: "32px", background: "#FFF8FA", border: "1px solid #F4D8DE",
+    borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer", flexShrink: 0,
+  };
+
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Lịch dạy</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={prevWeek}><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-sm font-medium text-gray-700 w-40 text-center">{formatWeekRangeVN(weekStart)}</span>
-          <Button variant="outline" size="icon" onClick={nextWeek}><ChevronRight className="w-4 h-4" /></Button>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      {/* Sticky header */}
+      <div style={hdrStyle}>
+        <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: "22px", fontWeight: 600, color: "#2C1820", letterSpacing: "-0.5px", margin: 0 }}>
+            Lịch dạy
+          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button onClick={() => setWeekStart((ws) => addDaysStr(ws, -7))} style={navBtnStyle}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#62666d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820", minWidth: "160px", textAlign: "center" }}>
+              {formatWeekRangeVN(weekStart)}
+            </span>
+            <button onClick={() => setWeekStart((ws) => addDaysStr(ws, 7))} style={navBtnStyle}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#62666d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {/* Day headers */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100 bg-pink-50/50">
-          <div className="p-3" />
+      {/* Calendar grid */}
+      <div style={{ flex: 1, overflow: "auto", background: "white", border: "1px solid #F4D8DE", margin: "20px 32px", borderRadius: "12px" }}>
+        {/* Day headers — sticky */}
+        <div style={{ display: "flex", borderBottom: "1px solid #F4D8DE", position: "sticky", top: 0, background: "#FFF8FA", zIndex: 5 }}>
+          <div style={{ width: "56px", flexShrink: 0, borderRight: "1px solid #F4D8DE" }} />
           {days.map((d, i) => {
             const isToday = d === today;
-            const [, , day] = d.split("-");
+            const dateStr = d.slice(8) + "-" + d.slice(5, 7);
             return (
-              <div key={d} className="p-3 text-center">
-                <div className="text-xs text-gray-400 font-medium">{vnDayName(new Date(d + "T00:00:00").getDay())}</div>
-                <div className={`text-sm font-semibold mx-auto w-8 h-8 flex items-center justify-center rounded-full mt-1 ${isToday ? "bg-primary text-white" : "text-gray-700"}`}>
-                  {parseInt(day)}
+              <div key={d} style={{ flex: 1, padding: "10px 0", textAlign: "center", borderRight: "1px solid #F4D8DE" }}>
+                <div style={{ fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                  {DAY_NAMES[i]}
                 </div>
-                <div className="text-xs text-gray-400">{d.slice(5).replace("-", "/")}</div>
+                <div
+                  style={isToday
+                    ? { display: "inline-block", marginTop: "4px", background: "#E8788A", color: "white", borderRadius: "9999px", padding: "2px 9px", fontSize: "12px", fontWeight: 700, boxShadow: "0 2px 8px rgba(232,120,138,0.45)" }
+                    : { display: "inline-block", marginTop: "4px", color: "#A87888", padding: "2px 8px", fontSize: "12px" }
+                  }
+                >
+                  {dateStr}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Time grid */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] overflow-y-auto" style={{ maxHeight: "600px" }}>
+        {/* Grid body */}
+        <div style={{ display: "flex", position: "relative", paddingTop: "20px" }}>
           {/* Time labels */}
-          <div className="relative" style={{ height: `${GRID_HEIGHT}px` }}>
-            {Array.from({ length: HOUR_END - HOUR_START }, (_, i) => (
+          <div style={{ width: "56px", flexShrink: 0, borderRight: "1px solid #F4D8DE", position: "relative", height: `${GRID_H}px` }}>
+            {Array.from({ length: 14 }, (_, i) => (
               <div
                 key={i}
-                className="absolute text-xs text-gray-400 text-right pr-3"
-                style={{ top: `${(i / (HOUR_END - HOUR_START)) * GRID_HEIGHT - 8}px`, width: "100%" }}
+                style={{ position: "absolute", top: `${i * HOUR_H - 8}px`, right: "6px", fontSize: "10px", color: "#9098a8", lineHeight: 1, whiteSpace: "nowrap" }}
               >
-                {HOUR_START + i}:00
+                {GRID_S + i}:00
               </div>
             ))}
           </div>
 
           {/* Day columns */}
-          {days.map((d) => {
-            const daySessions = getSessionsForDay(d);
-            return (
-              <div key={d} className="relative border-l border-gray-100" style={{ height: `${GRID_HEIGHT}px` }}>
-                {/* Hour lines */}
-                {Array.from({ length: HOUR_END - HOUR_START }, (_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-full border-t border-gray-50"
-                    style={{ top: `${(i / (HOUR_END - HOUR_START)) * GRID_HEIGHT}px` }}
-                  />
-                ))}
-                {/* Sessions */}
-                {loading ? null : daySessions.map((s) => (
-                  <Link key={s.id} href={`/bills/${s.bill.id}`}>
-                    <div
-                      className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-white text-xs cursor-pointer overflow-hidden hover:opacity-90 transition-opacity ${
-                        s.bill.student.subject === "english"
-                          ? "bg-blue-400 hover:bg-blue-500"
-                          : "bg-primary hover:bg-primary/90"
-                      }`}
-                      style={sessionStyle(s)}
-                    >
-                      <div className="font-semibold truncate">{s.bill.student.name}</div>
-                      <div className="opacity-80">{s.startTime}–{s.endTime}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            );
-          })}
+          <div
+            style={{
+              flex: 1, display: "flex", height: `${GRID_H}px`,
+              backgroundImage: `repeating-linear-gradient(to bottom, #F4D8DE 0px, #F4D8DE 1px, transparent 1px, transparent ${HOUR_H}px)`,
+              backgroundSize: `100% ${HOUR_H}px`,
+            }}
+          >
+            {days.map((d, i) => {
+              const isToday = d === today;
+              const daySessions = sessions.filter((s) => s.scheduledDate === d);
+              return (
+                <div
+                  key={d}
+                  style={{
+                    flex: 1, position: "relative", borderRight: "1px solid #F4D8DE",
+                    height: `${GRID_H}px`,
+                    background: isToday ? "rgba(232,120,138,0.04)" : "transparent",
+                    transition: "background 300ms ease",
+                  }}
+                >
+                  {!loading && daySessions.map((s) => {
+                    const topPx = (pt(s.startTime) - GRID_S * 60) / 60 * HOUR_H;
+                    const heightPx = Math.max((pt(s.endTime) - pt(s.startTime)) / 60 * HOUR_H - 4, 28);
+                    const color = getColor(s.bill.student);
+                    return (
+                      <Link key={s.id} href={`/bills/${s.bill.id}`} style={{ textDecoration: "none" }}>
+                        <div
+                          style={{
+                            position: "absolute", top: `${topPx}px`, height: `${heightPx}px`,
+                            left: "5px", right: "5px",
+                            background: color.bg, borderRadius: "9px", padding: "7px 9px 5px",
+                            cursor: "pointer", overflow: "hidden",
+                            boxShadow: `0 4px 14px ${color.shadow}, 0 1px 4px ${color.shadow}`,
+                            border: "1px solid rgba(255,255,255,0.22)",
+                            transition: "transform 140ms ease, box-shadow 140ms ease",
+                          }}
+                        >
+                          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "rgba(255,255,255,0.32)", borderRadius: "9px 9px 0 0" }} />
+                          <div style={{ fontSize: "12px", fontWeight: 700, color: "white", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 1px 3px rgba(0,0,0,0.18)", marginTop: "2px" }}>
+                            {s.bill.student.name}
+                          </div>
+                          <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.88)", marginTop: "2px", fontFamily: "monospace" }}>
+                            {s.startTime}–{s.endTime}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
