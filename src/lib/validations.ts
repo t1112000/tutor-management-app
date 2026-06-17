@@ -13,6 +13,7 @@ export const studentSchema = z.object({
   parentName: z.string().optional(),
   parentPhone: z.string().optional(),
   color: z.string().nullable().optional(),
+  type: z.enum(["offline", "online"]).default("offline"),
 });
 
 export const scheduleSchema = z.object({

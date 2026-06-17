@@ -11,7 +11,7 @@ export class User extends Model<
   declare email: string;
   declare name: string | null;
   declare image: string | null;
-  declare googleId: string | null;
+  declare passwordHash: string | null;
   declare pushSubscription: object | null;
   declare notificationEmail: string | null;
   declare pushEnabled: CreationOptional<boolean>;
@@ -27,7 +27,7 @@ export function initUser(sequelize: Sequelize) {
       email: { type: DataTypes.STRING, allowNull: false, unique: true },
       name: { type: DataTypes.STRING, allowNull: true },
       image: { type: DataTypes.STRING, allowNull: true },
-      googleId: { type: DataTypes.STRING, allowNull: true },
+      passwordHash: { type: DataTypes.STRING, allowNull: true },
       pushSubscription: { type: DataTypes.JSONB, allowNull: true },
       notificationEmail: { type: DataTypes.STRING, allowNull: true },
       pushEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },

@@ -18,6 +18,7 @@ export class Student extends Model<
   declare parentName: string | null;
   declare parentPhone: string | null;
   declare color: string | null;
+  declare type: "offline" | "online";
   declare createdBy: ForeignKey<User["id"]>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -41,6 +42,7 @@ export function initStudent(sequelize: Sequelize) {
       parentName: { type: DataTypes.STRING, allowNull: true },
       parentPhone: { type: DataTypes.STRING, allowNull: true },
       color: { type: DataTypes.STRING, allowNull: true },
+      type: { type: DataTypes.ENUM("offline", "online"), allowNull: false, defaultValue: "offline" },
       createdBy: { type: DataTypes.INTEGER, allowNull: false },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,

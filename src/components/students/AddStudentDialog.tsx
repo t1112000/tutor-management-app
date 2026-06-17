@@ -1,13 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   open: boolean;
@@ -15,11 +10,19 @@ interface Props {
   onCreated: () => void;
 }
 
+const inputStyle: React.CSSProperties = {
+  width: "100%", background: "#FFF8FA", border: "1px solid #F4D8DE",
+  borderRadius: "12px", padding: "9px 12px", fontSize: "14px",
+  color: "#2C1820", outline: "none", fontFamily: "inherit",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block", fontSize: "12px", fontWeight: 500, color: "#6B4858", marginBottom: "6px",
+};
+
 export default function AddStudentDialog({ open, onOpenChange, onCreated }: Props) {
-  const [form, setForm] = useState({
-    name: "", phone: "", subject: "english", birthday: "",
-    address: "", notes: "", parentName: "", parentPhone: "",
-  });
+  const router = useRouter();
+  const [form, setForm] = useState({ name: "", phone: "", subject: "english", address: "", type: "offline" });
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -30,72 +33,159 @@ export default function AddStudentDialog({ open, onOpenChange, onCreated }: Prop
       const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, birthday: "", notes: "", parentName: "", parentPhone: "" }),
       });
       if (!res.ok) { toast.error("Thêm học sinh thất bại"); return; }
+      const student = await res.json();
       toast.success("Đã thêm học sinh");
-      setForm({ name: "", phone: "", subject: "english", birthday: "", address: "", notes: "", parentName: "", parentPhone: "" });
       onCreated();
+      router.push(`/students/${student.id}`);
     } finally {
       setSaving(false);
     }
   }
 
+  if (!open) return null;
+
+  const isEnglish = form.subject === "english";
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Thêm học sinh mới</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1">
-            <Label>Tên học sinh *</Label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nguyễn Thị Mai" />
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(1,1,2,0.50)", display: "flex", alignItems: "center", justifyContent: "center" }}
+      onClick={() => onOpenChange(false)}
+    >
+      <div
+        style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "14px", padding: "24px", width: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.18)", animation: "fadeIn 120ms ease" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <div style={{ fontSize: "16px", fontWeight: 600, color: "#2C1820" }}>Thêm học sinh mới</div>
+          <button
+            onClick={() => onOpenChange(false)}
+            style={{ width: "28px", height: "28px", background: "#FFF8FA", border: "1px solid #F4D8DE", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px", color: "#A87888", lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          {/* Name */}
+          <div>
+            <label style={labelStyle}>
+              Họ và tên <span style={{ color: "#dc2626" }}>*</span>
+            </label>
+            <input
+              style={inputStyle}
+              type="text"
+              placeholder="Nguyễn Văn A"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onFocus={(e) => { e.target.style.borderColor = "#E8788A"; e.target.style.boxShadow = "0 0 0 3px rgba(232,120,138,0.20)"; }}
+              onBlur={(e) => { e.target.style.borderColor = "#F4D8DE"; e.target.style.boxShadow = "none"; }}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Môn học</Label>
-              <Select value={form.subject} onValueChange={(v) => setForm({ ...form, subject: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="english">Tiếng Anh</SelectItem>
-                  <SelectItem value="chinese">Tiếng Trung</SelectItem>
-                </SelectContent>
-              </Select>
+
+          {/* Subject toggle */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom: "8px" }}>Môn học</label>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, subject: "english" })}
+                style={{
+                  flex: 1, padding: "8px 0", borderRadius: "6px", cursor: "pointer", fontSize: "13px",
+                  ...(isEnglish
+                    ? { background: "rgba(59,111,212,0.12)", color: "#3b6fd4", border: "1px solid rgba(59,111,212,0.25)", fontWeight: 600 }
+                    : { background: "#FFF8FA", color: "#A87888", border: "1px solid #F4D8DE", fontWeight: 400 })
+                }}
+              >
+                Tiếng Anh
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, subject: "chinese" })}
+                style={{
+                  flex: 1, padding: "8px 0", borderRadius: "6px", cursor: "pointer", fontSize: "13px",
+                  ...(!isEnglish
+                    ? { background: "rgba(220,38,38,0.10)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.22)", fontWeight: 600 }
+                    : { background: "#FFF8FA", color: "#A87888", border: "1px solid #F4D8DE", fontWeight: 400 })
+                }}
+              >
+                Tiếng Trung
+              </button>
             </div>
-            <div className="space-y-1">
-              <Label>Số điện thoại</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0901 234 567" />
+          </div>
+
+          {/* Type toggle */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom: "8px" }}>Hình thức học</label>
+            <div style={{ display: "flex", gap: "8px" }}>
+              {(["offline", "online"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setForm({ ...form, type: t })}
+                  style={{
+                    flex: 1, padding: "8px 0", borderRadius: "6px", cursor: "pointer", fontSize: "13px",
+                    ...(form.type === t
+                      ? { background: t === "online" ? "rgba(46,125,50,0.10)" : "rgba(230,81,0,0.10)", color: t === "online" ? "#2E7D32" : "#E65100", border: `1px solid ${t === "online" ? "rgba(46,125,50,0.25)" : "rgba(230,81,0,0.25)"}`, fontWeight: 600 }
+                      : { background: "#FFF8FA", color: "#A87888", border: "1px solid #F4D8DE", fontWeight: 400 })
+                  }}
+                >
+                  {t === "offline" ? "Offline" : "Online"}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Ngày sinh</Label>
-              <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <Label>Phụ huynh</Label>
-              <Input value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} placeholder="Tên phụ huynh" />
-            </div>
+
+          {/* Phone */}
+          <div>
+            <label style={labelStyle}>Số điện thoại</label>
+            <input
+              style={inputStyle}
+              type="text"
+              placeholder="0901 234 567"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onFocus={(e) => { e.target.style.borderColor = "#E8788A"; e.target.style.boxShadow = "0 0 0 3px rgba(232,120,138,0.20)"; }}
+              onBlur={(e) => { e.target.style.borderColor = "#F4D8DE"; e.target.style.boxShadow = "none"; }}
+            />
           </div>
-          <div className="space-y-1">
-            <Label>SĐT phụ huynh</Label>
-            <Input value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })} placeholder="0912 345 678" />
+
+          {/* Address */}
+          <div>
+            <label style={labelStyle}>Địa chỉ</label>
+            <input
+              style={inputStyle}
+              type="text"
+              placeholder="123 Đường ABC, Quận X..."
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              onFocus={(e) => { e.target.style.borderColor = "#E8788A"; e.target.style.boxShadow = "0 0 0 3px rgba(232,120,138,0.20)"; }}
+              onBlur={(e) => { e.target.style.borderColor = "#F4D8DE"; e.target.style.boxShadow = "none"; }}
+            />
           </div>
-          <div className="space-y-1">
-            <Label>Địa chỉ</Label>
-            <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="123 Đường ABC, Q.1" />
-          </div>
-          <div className="space-y-1">
-            <Label>Ghi chú</Label>
-            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Ghi chú thêm..." rows={2} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Thêm học sinh"}</Button>
+
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              style={{ flex: 1, background: "#FFF8FA", color: "#6B4858", border: "1px solid #F4D8DE", borderRadius: "8px", padding: "10px 0", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{ flex: 2, background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white", border: "none", borderRadius: "10px", padding: "10px 0", fontSize: "13px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
+            >
+              {saving ? "Đang lưu..." : "Thêm học sinh"}
+            </button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

@@ -1,12 +1,25 @@
 export const STUDENT_COLORS = [
-  { hex: "#6BA8F0", bg: "linear-gradient(150deg,#6BA8F0,#90C2FA,#A8D4FD)", shadow: "rgba(107,168,240,0.40)" },
-  { hex: "#F07888", bg: "linear-gradient(150deg,#F07888,#F8A0B0,#FAB8C4)", shadow: "rgba(240,120,136,0.36)" },
-  { hex: "#7ECBA0", bg: "linear-gradient(150deg,#7ECBA0,#98DCC0,#B0EAD0)", shadow: "rgba(126,203,160,0.40)" },
-  { hex: "#B088F0", bg: "linear-gradient(150deg,#B088F0,#CCAAF8,#DAC0FC)", shadow: "rgba(176,136,240,0.40)" },
-  { hex: "#F0A860", bg: "linear-gradient(150deg,#F0A860,#F8C080,#FAD098)", shadow: "rgba(240,168,96,0.40)" },
-  { hex: "#60C8D8", bg: "linear-gradient(150deg,#60C8D8,#80DCEA,#9EECF8)", shadow: "rgba(96,200,216,0.40)" },
-  { hex: "#E8C860", bg: "linear-gradient(150deg,#E8C860,#F4D878,#F8E290)", shadow: "rgba(232,200,96,0.40)" },
-  { hex: "#F09090", bg: "linear-gradient(150deg,#F09090,#F8B0B0,#FAC8C8)", shadow: "rgba(240,144,144,0.40)" },
+  // Row 1
+  { hex: "#ABDEE6", bg: "linear-gradient(150deg,#ABDEE6,#C5EBF0)", shadow: "rgba(171,222,230,0.35)" },
+  { hex: "#CBAACB", bg: "linear-gradient(150deg,#CBAACB,#DBBFDB)", shadow: "rgba(203,170,203,0.35)" },
+  { hex: "#FFCCB6", bg: "linear-gradient(150deg,#FFCCB6,#FFD9C8)", shadow: "rgba(255,204,182,0.35)" },
+  { hex: "#F3B0C3", bg: "linear-gradient(150deg,#F3B0C3,#F8C5D3)", shadow: "rgba(243,176,195,0.35)" },
+  // Row 2
+  { hex: "#C6DBDA", bg: "linear-gradient(150deg,#C6DBDA,#D6E8E7)", shadow: "rgba(198,219,218,0.35)" },
+  { hex: "#FED7C3", bg: "linear-gradient(150deg,#FED7C3,#FEE4D5)", shadow: "rgba(254,215,195,0.35)" },
+  { hex: "#ECD5E3", bg: "linear-gradient(150deg,#ECD5E3,#F3E3EE)", shadow: "rgba(236,213,227,0.35)" },
+  // Row 3
+  { hex: "#FF968A", bg: "linear-gradient(150deg,#FF968A,#FFAEA5)", shadow: "rgba(255,150,138,0.35)" },
+  { hex: "#FFAEA5", bg: "linear-gradient(150deg,#FFAEA5,#FFC3BC)", shadow: "rgba(255,174,165,0.35)" },
+  { hex: "#FFC8A2", bg: "linear-gradient(150deg,#FFC8A2,#FFD5B8)", shadow: "rgba(255,200,162,0.35)" },
+  // Row 4
+  { hex: "#8FCACA", bg: "linear-gradient(150deg,#8FCACA,#AADADA)", shadow: "rgba(143,202,202,0.35)" },
+  { hex: "#CCE2CB", bg: "linear-gradient(150deg,#CCE2CB,#DBECDA)", shadow: "rgba(204,226,203,0.35)" },
+  { hex: "#97C1A9", bg: "linear-gradient(150deg,#97C1A9,#AECFBB)", shadow: "rgba(151,193,169,0.35)" },
+  // Row 5
+  { hex: "#FCB9AA", bg: "linear-gradient(150deg,#FCB9AA,#FDCCC0)", shadow: "rgba(252,185,170,0.35)" },
+  { hex: "#A2E1DB", bg: "linear-gradient(150deg,#A2E1DB,#BBEAE6)", shadow: "rgba(162,225,219,0.35)" },
+  { hex: "#55CBCD", bg: "linear-gradient(150deg,#55CBCD,#7DD8DA)", shadow: "rgba(85,203,205,0.35)" },
 ] as const;
 
 export type StudentColor = (typeof STUDENT_COLORS)[number];

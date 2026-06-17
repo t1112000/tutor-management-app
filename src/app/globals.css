@@ -10,7 +10,7 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 346 77% 60%;
+    --primary: 350 71% 69%;
     --primary-foreground: 0 0% 100%;
     --secondary: 346 100% 97%;
     --secondary-foreground: 346 77% 40%;
@@ -20,9 +20,9 @@
     --accent-foreground: 346 77% 40%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 346 77% 60%;
+    --border: 347 50% 91%;
+    --input: 347 50% 91%;
+    --ring: 350 71% 69%;
     --radius: 0.75rem;
   }
 }
@@ -32,6 +32,26 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: url("/bg-main.png") center / cover fixed no-repeat;
   }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+:root {
+  --bottom-nav-h: 64px;
 }

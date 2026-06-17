@@ -1,24 +1,32 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
-import { upsertUserByGoogle } from "@/lib/db/users";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Mật khẩu", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const { User } = await import("@/lib/db/index");
+        const user = await User.findOne({ where: { email: credentials.email } });
+        if (!user?.passwordHash) return null;
+        const ok = await bcrypt.compare(String(credentials.password), user.passwordHash);
+        if (!ok) return null;
+        return { id: String(user.id), email: user.email, name: user.name, image: user.image };
+      },
+    }),
+  ],
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, account }) {
-      if (account?.provider === "google" && account.providerAccountId && user?.email) {
-        const dbUser = await upsertUserByGoogle({
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          googleId: account.providerAccountId,
-        });
-        // null means email belongs to a different Google account — refuse
-        if (!dbUser) return { ...token, error: "account_conflict" };
-        token.uid = dbUser.id;
-      }
+    async jwt({ token, user }) {
+      if (user?.id) token.uid = Number(user.id);
       return token;
     },
     async session({ session, token }) {

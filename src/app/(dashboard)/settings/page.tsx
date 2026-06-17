@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { auth } from "../../../../auth";
 import { redirect } from "next/navigation";
 import { User } from "@/lib/db/index";
+
+export const metadata: Metadata = { title: "Cài đặt | MyClass" };
 import SettingsClient from "@/components/settings/SettingsClient";
 
 export const dynamic = "force-dynamic";

@@ -1,7 +1,6 @@
 import { auth } from "../../../auth";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
-import { Toaster } from "sonner";
 
 export default async function DashboardLayout({
   children,
@@ -12,12 +11,11 @@ export default async function DashboardLayout({
   if (!session) redirect("/signin");
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen">
       <Sidebar user={session.user} />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-hidden">
         {children}
       </main>
-      <Toaster position="top-right" richColors />
     </div>
   );
 }

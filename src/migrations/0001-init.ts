@@ -9,7 +9,6 @@ export const up: MigrationFn<QueryInterface> = async ({ context: qi }) => {
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     name: { type: DataTypes.STRING, allowNull: true },
     image: { type: DataTypes.STRING, allowNull: true },
-    googleId: { type: DataTypes.STRING, allowNull: true },
     pushSubscription: { type: DataTypes.JSONB, allowNull: true },
     notificationEmail: { type: DataTypes.STRING, allowNull: true },
     pushEnabled: { type: DataTypes.BOOLEAN, defaultValue: false, allowNull: false },

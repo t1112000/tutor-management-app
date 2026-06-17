@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronLeft, Pencil, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { TimePicker } from "@/components/ui/time-picker";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatMoneyVND, formatDateVN } from "@/lib/time";
 import { STUDENT_COLORS } from "@/lib/student-colors";
 
@@ -40,6 +40,7 @@ interface Student {
   parentName: string | null;
   parentPhone: string | null;
   color: string | null;
+  type: "offline" | "online";
   schedules: Schedule[];
   bills: BillSummary[];
 }
@@ -51,27 +52,30 @@ interface FormData {
   subject: "english" | "chinese";
   address: string;
   notes: string;
-  parentName: string;
-  parentPhone: string;
   color: string | null;
+  type: "offline" | "online";
 }
 
-type AddPicker =
-  | { phase: "start"; dayOfWeek: number; startTime: string }
-  | { phase: "end"; dayOfWeek: number; startTime: string; endTime: string };
+type AddPicker = { dayOfWeek: number; startTime: string; endTime: string };
 
 const DAY_NAMES = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const DAY_VALUES = [1, 2, 3, 4, 5, 6, 0];
 
-const cardStyle: React.CSSProperties = {
-  background: "white", borderRadius: 16, border: "1px solid #F4D8DE",
-  padding: 24, marginBottom: 20,
-};
+function addOneHour(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  return `${String((h + 1) % 24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
 
 const labelStyle: React.CSSProperties = {
   display: "block", fontSize: 11, fontWeight: 600, color: "#C4A0A8",
-  textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6,
+  textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4,
 };
+
+const inputStyle: React.CSSProperties = {
+  background: "#FFF8FA", borderColor: "#ECC8D0", borderRadius: 10,
+};
+
+const DEFAULT_COLOR = "#6BA8F0";
 
 function studentToForm(s: Student): FormData {
   return {
@@ -81,17 +85,23 @@ function studentToForm(s: Student): FormData {
     subject: s.subject,
     address: s.address ?? "",
     notes: s.notes ?? "",
-    parentName: s.parentName ?? "",
-    parentPhone: s.parentPhone ?? "",
-    color: s.color,
+    color: s.color ?? DEFAULT_COLOR,
+    type: s.type ?? "offline",
   };
 }
+
+const hdrStyle: React.CSSProperties = {
+  height: 64, padding: "0 32px", display: "flex", alignItems: "center",
+  borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
+  backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10,
+  flexShrink: 0, justifyContent: "space-between",
+};
 
 export default function StudentDetailClient({ studentId }: { studentId: number }) {
   const router = useRouter();
   const [student, setStudent] = useState<Student | null>(null);
   const [form, setForm] = useState<FormData | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addPicker, setAddPicker] = useState<AddPicker | null>(null);
 
@@ -101,14 +111,23 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
     const data: Student = await res.json();
     setStudent(data);
     setForm(studentToForm(data));
-    setIsDirty(false);
+    setIsEditing(false);
   }, [studentId, router]);
 
   useEffect(() => { load(); }, [load]);
 
   function updateForm(patch: Partial<FormData>) {
     setForm((f) => f ? { ...f, ...patch } : f);
-    setIsDirty(true);
+  }
+
+  function startEdit() {
+    if (student) setForm(studentToForm(student));
+    setIsEditing(true);
+  }
+
+  function cancelEdit() {
+    if (student) setForm(studentToForm(student));
+    setIsEditing(false);
   }
 
   async function saveStudent() {
@@ -130,7 +149,6 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
     if (!form) return;
     const newForm = { ...form, color: hex };
     setForm(newForm);
-    setIsDirty(false);
     const res = await fetch(`/api/students/${studentId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -169,142 +187,324 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
   }
 
   if (!student || !form) {
-    return <div style={{ padding: 32, color: "#A87888" }}>Đang tải...</div>;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+        <div style={hdrStyle} />
+        <div style={{ padding: 32, color: "#A87888" }}>Đang tải...</div>
+      </div>
+    );
   }
 
-  return (
-    <div style={{ padding: "24px 32px", maxWidth: 1100 }}>
+  const currentColor = form.color ?? DEFAULT_COLOR;
 
-      {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+
+      {/* ── Sticky header ── */}
+      <div style={hdrStyle}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Link
             href="/students"
-            style={{ display: "flex", alignItems: "center", gap: 4, color: "#A87888", fontSize: 14, textDecoration: "none" }}
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: "#FFF0F3", border: "1px solid #F4D8DE",
+              borderRadius: 8, padding: "5px 12px",
+              color: "#A87888", fontSize: 13, textDecoration: "none", fontWeight: 500,
+              whiteSpace: "nowrap",
+            }}
           >
-            <ChevronLeft size={16} /> Học sinh
+            <ChevronLeft size={14} /> Học sinh
           </Link>
-          <span style={{ color: "#E0C0C8" }}>/</span>
-          <span style={{ fontWeight: 600, color: "#2C1820", fontSize: 14 }}>{student.name}</span>
+          <span style={{ color: "#E0C0C8", fontSize: 16 }}>/</span>
+          <span style={{ fontWeight: 700, color: "#2C1820", fontSize: 15 }}>{student.name}</span>
         </div>
         <Link href={`/students/${studentId}/bills/new`}>
           <button style={{
             background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white",
-            border: "none", borderRadius: 12, padding: "10px 20px",
-            fontWeight: 600, fontSize: 14, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 8,
+            border: "none", borderRadius: 10, padding: "7px 16px",
+            fontWeight: 600, fontSize: 13, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6,
           }}>
-            <Plus size={16} /> Tạo hóa đơn mới
+            <Plus size={14} /> Tạo hóa đơn mới
           </button>
         </Link>
       </div>
 
-      {/* ── Info card ── */}
-      <div style={cardStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: 0 }}>Thông tin học sinh</h2>
-          <button
-            onClick={deleteStudent}
-            style={{ fontSize: 12, color: "#F07888", background: "none", border: "none", cursor: "pointer" }}
-          >
-            Xóa học sinh
-          </button>
-        </div>
+      {/* ── Scrollable content ── */}
+      <div style={{ flex: 1, overflow: "auto", padding: "24px 32px" }}>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <div>
-            <span style={labelStyle}>Họ và tên</span>
-            <Input value={form.name} onChange={(e) => updateForm({ name: e.target.value })}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-          <div>
-            <span style={labelStyle}>Môn học</span>
-            <Select value={form.subject} onValueChange={(v: "english" | "chinese") => updateForm({ subject: v })}>
-              <SelectTrigger style={{ borderColor: "#F4D8DE", borderRadius: 10 }}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="english">Tiếng Anh</SelectItem>
-                <SelectItem value="chinese">Tiếng Trung</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <span style={labelStyle}>Số điện thoại</span>
-            <Input value={form.phone} onChange={(e) => updateForm({ phone: e.target.value })}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-          <div>
-            <span style={labelStyle}>Địa chỉ</span>
-            <Input value={form.address} onChange={(e) => updateForm({ address: e.target.value })}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-          <div>
-            <span style={labelStyle}>Ngày sinh</span>
-            <Input type="date" value={form.birthday} onChange={(e) => updateForm({ birthday: e.target.value })}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-          <div>
-            <span style={labelStyle}>Phụ huynh</span>
-            <Input value={form.parentName} onChange={(e) => updateForm({ parentName: e.target.value })}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-          <div>
-            <span style={labelStyle}>SĐT phụ huynh</span>
-            <Input value={form.parentPhone} onChange={(e) => updateForm({ parentPhone: e.target.value })}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-          <div />
-          <div style={{ gridColumn: "1 / -1" }}>
-            <span style={labelStyle}>Ghi chú</span>
-            <Textarea value={form.notes} onChange={(e) => updateForm({ notes: e.target.value })} rows={2}
-              style={{ borderColor: "#F4D8DE", borderRadius: 10 }} />
-          </div>
-        </div>
-
-        {/* Color picker */}
-        <div style={{ marginTop: 24 }}>
-          <span style={labelStyle}>Màu trên lịch</span>
-          <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-            {STUDENT_COLORS.map((c) => (
+        {/* ── Info card ── */}
+        <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: 0 }}>Thông tin học sinh</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {!isEditing && (
+                <button
+                  onClick={startEdit}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#A87888", background: "#FFF0F3", border: "1px solid #F4D8DE", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontWeight: 500 }}
+                >
+                  <Pencil size={13} /> Chỉnh sửa
+                </button>
+              )}
               <button
-                key={c.hex}
-                onClick={() => pickColor(c.hex)}
-                style={{
-                  width: 32, height: 32, borderRadius: "50%", background: c.hex,
-                  border: form.color === c.hex ? "3px solid white" : "3px solid transparent",
-                  boxShadow: form.color === c.hex ? `0 0 0 2.5px ${c.hex}` : "none",
-                  cursor: "pointer", transition: "box-shadow 120ms ease",
-                  flexShrink: 0,
-                }}
-              />
-            ))}
+                onClick={deleteStudent}
+                style={{ fontSize: 12, color: "#F07888", background: "none", border: "none", cursor: "pointer" }}
+              >
+                Xóa học sinh
+              </button>
+            </div>
+          </div>
+
+          {isEditing ? (
+            /* ── Edit mode ── */
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px" }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <span style={labelStyle}>Họ và tên</span>
+                <Input value={form.name} onChange={(e) => updateForm({ name: e.target.value })} placeholder="Nhập họ và tên" style={inputStyle} />
+              </div>
+              <div>
+                <span style={labelStyle}>Môn học</span>
+                <Select value={form.subject} onValueChange={(v: "english" | "chinese") => updateForm({ subject: v })}>
+                  <SelectTrigger style={inputStyle}><SelectValue placeholder="Chọn môn học" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="english">Tiếng Anh</SelectItem>
+                    <SelectItem value="chinese">Tiếng Trung</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <span style={labelStyle}>Số điện thoại</span>
+                <Input value={form.phone} onChange={(e) => updateForm({ phone: e.target.value })} placeholder="0901 234 567" style={inputStyle} />
+              </div>
+              <div>
+                <span style={labelStyle}>Địa chỉ</span>
+                <Input value={form.address} onChange={(e) => updateForm({ address: e.target.value })} placeholder="Nhập địa chỉ" style={inputStyle} />
+              </div>
+              <div>
+                <span style={labelStyle}>Ngày sinh</span>
+                <DatePicker value={form.birthday} onChange={(v) => updateForm({ birthday: v })} placeholder="Chọn ngày sinh" />
+              </div>
+              <div>
+                <span style={labelStyle}>Hình thức học</span>
+                <div style={{ display: "flex", background: "#F8F0F4", borderRadius: 10, padding: 3, gap: 2, width: "fit-content", marginTop: 2 }}>
+                  {(["offline", "online"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => updateForm({ type: t })}
+                      style={{
+                        padding: "6px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "none",
+                        cursor: "pointer", transition: "all 120ms ease",
+                        background: form.type === t ? "white" : "transparent",
+                        color: form.type === t ? "#2C1820" : "#A87888",
+                        boxShadow: form.type === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      }}
+                    >
+                      {t === "offline" ? "Offline" : "Online"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <span style={labelStyle}>Ghi chú</span>
+                <Textarea value={form.notes} onChange={(e) => updateForm({ notes: e.target.value })} rows={2} placeholder="Ghi chú thêm..." style={inputStyle} />
+              </div>
+              <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, marginTop: 4 }}>
+                <button
+                  onClick={saveStudent}
+                  disabled={saving}
+                  style={{
+                    background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white",
+                    border: "none", borderRadius: 8, padding: "7px 18px",
+                    fontWeight: 600, fontSize: 13, cursor: saving ? "not-allowed" : "pointer",
+                    opacity: saving ? 0.7 : 1,
+                  }}
+                >
+                  {saving ? "Đang lưu..." : "Lưu thông tin"}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  style={{
+                    background: "white", color: "#A87888",
+                    border: "1px solid #F4D8DE", borderRadius: 8, padding: "7px 16px",
+                    fontWeight: 500, fontSize: 13, cursor: "pointer",
+                  }}
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ── View mode ── */
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 40px" }}>
+              <div>
+                <span style={labelStyle}>Họ và tên</span>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#2C1820" }}>{student.name || "—"}</div>
+              </div>
+              <div>
+                <span style={labelStyle}>Môn học</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{
+                    display: "inline-block", fontSize: 13, fontWeight: 500,
+                    background: "#EBF5FF", color: "#3B82F6",
+                    padding: "3px 12px", borderRadius: 20,
+                  }}>
+                    {student.subject === "english" ? "Tiếng Anh" : "Tiếng Trung"}
+                  </span>
+                  <span style={{
+                    display: "inline-block", fontSize: 13, fontWeight: 500,
+                    background: student.type === "online" ? "#E8F5E9" : "#FFF3E0",
+                    color: student.type === "online" ? "#2E7D32" : "#E65100",
+                    padding: "3px 12px", borderRadius: 20,
+                  }}>
+                    {student.type === "online" ? "Online" : "Offline"}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span style={labelStyle}>Số điện thoại</span>
+                <div style={{ fontSize: 15, color: "#2C1820" }}>{student.phone || "—"}</div>
+              </div>
+              <div>
+                <span style={labelStyle}>Địa chỉ</span>
+                <div style={{ fontSize: 15, color: "#2C1820" }}>{student.address || "—"}</div>
+              </div>
+              {student.birthday && (
+                <div>
+                  <span style={labelStyle}>Ngày sinh</span>
+                  <div style={{ fontSize: 15, color: "#2C1820" }}>{formatDateVN(student.birthday)}</div>
+                </div>
+              )}
+              {student.notes && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <span style={labelStyle}>Ghi chú</span>
+                  <div style={{ fontSize: 14, color: "#6B7280", whiteSpace: "pre-wrap" }}>{student.notes}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Color picker — always visible */}
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #F9F0F2" }}>
+            <span style={labelStyle}>Màu trên lịch</span>
+            <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+              {STUDENT_COLORS.map((c) => (
+                <button
+                  key={c.hex}
+                  onClick={() => pickColor(c.hex)}
+                  style={{
+                    width: 32, height: 32, borderRadius: "50%", background: c.hex,
+                    border: currentColor === c.hex ? "3px solid white" : "3px solid transparent",
+                    boxShadow: currentColor === c.hex ? `0 0 0 2.5px ${c.hex}` : "none",
+                    cursor: "pointer", transition: "box-shadow 120ms ease",
+                    flexShrink: 0,
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
-        {isDirty && (
-          <div style={{ marginTop: 20 }}>
-            <Button onClick={saveStudent} disabled={saving}>
-              {saving ? "Đang lưu..." : "Lưu thông tin"}
-            </Button>
-          </div>
-        )}
+        {/* ── Schedule card ── */}
+        <ScheduleCard
+          student={student}
+          addPicker={addPicker}
+          setAddPicker={setAddPicker}
+          removeSchedule={removeSchedule}
+          addSchedule={addSchedule}
+        />
+
+        {/* ── Bills table ── */}
+        <BillsTable bills={student.bills} />
+
       </div>
-
-      {/* ── Schedule card — stub, completed in Task 7 ── */}
-      <ScheduleCard
-        student={student}
-        addPicker={addPicker}
-        setAddPicker={setAddPicker}
-        removeSchedule={removeSchedule}
-        addSchedule={addSchedule}
-      />
-
-      {/* ── Bills table — stub, completed in Task 8 ── */}
-      <BillsTable bills={student.bills} studentId={studentId} />
-
     </div>
   );
 }
 
+// ── Inline time spinner col with click-to-type ──────────────────────────────
+const SCHED_MINS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+function parseHM(t: string): [number, number] {
+  const [h, m] = t.split(":").map(Number);
+  return [h ?? 7, m ?? 0];
+}
+
+function toTimeStr(h: number, m: number) {
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function TimeSpinnerCol({ time, onChange, label }: { time: string; onChange: (v: string) => void; label: string }) {
+  const [h, m] = parseHM(time);
+  const mIdx = Math.max(0, SCHED_MINS.findIndex((x) => x === m));
+  const [editH, setEditH] = useState(false);
+  const [editM, setEditM] = useState(false);
+  const [hVal, setHVal] = useState("");
+  const [mVal, setMVal] = useState("");
+
+  const btn: React.CSSProperties = {
+    width: 44, height: 30, background: "#F8F0F4", border: "1px solid #F4D8DE",
+    borderRadius: 8, cursor: "pointer", fontSize: 11, color: "#A87888",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  };
+  const box: React.CSSProperties = {
+    width: 56, height: 52, background: "#F8F0F4", border: "1px solid #F4D8DE",
+    borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 26, fontWeight: 700, color: "#2C1820", cursor: "text",
+  };
+  const editBox: React.CSSProperties = {
+    ...box, border: "2px solid #E8788A", outline: "none",
+    textAlign: "center", background: "#FFF8FA",
+  };
+
+  function commitH(val: string) {
+    const n = parseInt(val, 10);
+    if (!isNaN(n)) onChange(toTimeStr(Math.max(0, Math.min(23, n)), m));
+    setEditH(false);
+  }
+  function commitM(val: string) {
+    const n = parseInt(val, 10);
+    if (!isNaN(n)) {
+      const nearest = SCHED_MINS.reduce((p, c) => Math.abs(c - n) < Math.abs(p - n) ? c : p);
+      onChange(toTimeStr(h, nearest));
+    }
+    setEditM(false);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#A87888", marginBottom: 4 }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
+        {/* Hours */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <button style={btn} onClick={() => onChange(toTimeStr((h + 1) % 24, m))}>▲</button>
+          {editH
+            ? <input autoFocus style={editBox as React.CSSProperties} value={hVal} onChange={(e) => setHVal(e.target.value)}
+                onBlur={() => commitH(hVal)}
+                onKeyDown={(e) => { if (e.key === "Enter") commitH(hVal); if (e.key === "Escape") setEditH(false); }} />
+            : <div style={box} onClick={() => { setHVal(String(h).padStart(2, "0")); setEditH(true); }}>{String(h).padStart(2, "0")}</div>
+          }
+          <button style={btn} onClick={() => onChange(toTimeStr((h - 1 + 24) % 24, m))}>▼</button>
+          <span style={{ fontSize: 10, color: "#A87888", marginTop: 2 }}>giờ</span>
+        </div>
+        <span style={{ fontSize: 24, fontWeight: 700, color: "#2C1820", paddingTop: 34, lineHeight: 1 }}>:</span>
+        {/* Minutes */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <button style={btn} onClick={() => onChange(toTimeStr(h, SCHED_MINS[(mIdx + 1) % SCHED_MINS.length]))}>▲</button>
+          {editM
+            ? <input autoFocus style={editBox as React.CSSProperties} value={mVal} onChange={(e) => setMVal(e.target.value)}
+                onBlur={() => commitM(mVal)}
+                onKeyDown={(e) => { if (e.key === "Enter") commitM(mVal); if (e.key === "Escape") setEditM(false); }} />
+            : <div style={box} onClick={() => { setMVal(String(SCHED_MINS[mIdx]).padStart(2, "0")); setEditM(true); }}>{String(SCHED_MINS[mIdx]).padStart(2, "0")}</div>
+          }
+          <button style={btn} onClick={() => onChange(toTimeStr(h, SCHED_MINS[(mIdx - 1 + SCHED_MINS.length) % SCHED_MINS.length]))}>▼</button>
+          <span style={{ fontSize: 10, color: "#A87888", marginTop: 2 }}>phút</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ScheduleCard ─────────────────────────────────────────────────────────────
 interface ScheduleCardProps {
   student: Student;
   addPicker: AddPicker | null;
@@ -324,8 +524,7 @@ function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSch
         {DAY_NAMES.map((dayName, idx) => {
           const dow = DAY_VALUES[idx];
           const daySchedules = student.schedules.filter((s) => s.dayOfWeek === dow);
-          const isPickingStart = addPicker?.phase === "start" && addPicker.dayOfWeek === dow;
-          const isPickingEnd = addPicker?.phase === "end" && addPicker.dayOfWeek === dow;
+          const isOpen = addPicker?.dayOfWeek === dow;
 
           return (
             <div
@@ -365,55 +564,64 @@ function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSch
                 </div>
               ))}
 
-              {/* Start-time picker — trigger is the + button */}
-              <TimePicker
-                label="Giờ bắt đầu"
-                value={isPickingStart ? (addPicker as { startTime: string }).startTime : "07:00"}
-                onChange={(v) =>
-                  setAddPicker((p) => p?.phase === "start" && p.dayOfWeek === dow ? { ...p, startTime: v } : p)
-                }
-                onConfirm={() =>
-                  setAddPicker((p) =>
-                    p?.phase === "start" && p.dayOfWeek === dow
-                      ? { phase: "end", dayOfWeek: dow, startTime: p.startTime, endTime: "08:00" }
-                      : p
-                  )
-                }
-                open={isPickingStart}
-                onOpenChange={(o) => !o && setAddPicker(null)}
+              {/* Combined start+end picker */}
+              <Popover
+                open={isOpen}
+                onOpenChange={(o) => { if (!o) setAddPicker(null); }}
               >
-                <button
-                  onClick={() =>
-                    setAddPicker({ phase: "start", dayOfWeek: dow, startTime: "07:00" })
-                  }
-                  style={{
-                    marginTop: "auto", width: "100%", height: 32,
-                    background: "none", border: "1px dashed #F4D8DE",
-                    borderRadius: 8, cursor: "pointer", color: "#C4A0A8",
-                    fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  +
-                </button>
-              </TimePicker>
-
-              {/* End-time picker — programmatically opened after start confirmed */}
-              <TimePicker
-                label="Giờ kết thúc"
-                value={isPickingEnd ? (addPicker as { endTime: string }).endTime : "08:00"}
-                onChange={(v) =>
-                  setAddPicker((p) => p?.phase === "end" && p.dayOfWeek === dow ? { ...p, endTime: v } : p)
-                }
-                onConfirm={() => {
-                  if (isPickingEnd && addPicker?.phase === "end") {
-                    addSchedule(addPicker.dayOfWeek, addPicker.startTime, addPicker.endTime);
-                  }
-                }}
-                open={isPickingEnd}
-                onOpenChange={(o) => !o && setAddPicker(null)}
-              >
-                <span />
-              </TimePicker>
+                <PopoverTrigger asChild>
+                  <button
+                    onClick={() => setAddPicker({ dayOfWeek: dow, startTime: "07:00", endTime: "08:00" })}
+                    style={{
+                      marginTop: "auto", width: "100%", height: 32,
+                      background: "none", border: "1px dashed #F4D8DE",
+                      borderRadius: 8, cursor: "pointer", color: "#C4A0A8",
+                      fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    +
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent style={{
+                  width: 320, padding: 20, borderRadius: 20,
+                  border: "1px solid #F4D8DE",
+                  boxShadow: "0 8px 32px rgba(232,120,138,0.15)",
+                  background: "white",
+                }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>
+                    Thêm lịch — {dayName}
+                  </p>
+                  {isOpen && addPicker && (
+                    <>
+                      <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+                        <TimeSpinnerCol
+                          label="Bắt đầu"
+                          time={addPicker.startTime}
+                          onChange={(v) => setAddPicker((p) => p ? { ...p, startTime: v, endTime: addOneHour(v) } : p)}
+                        />
+                        <span style={{ fontSize: 20, color: "#D4A0B0", marginTop: 16 }}>→</span>
+                        <TimeSpinnerCol
+                          label="Kết thúc"
+                          time={addPicker.endTime}
+                          onChange={(v) => setAddPicker((p) => p ? { ...p, endTime: v } : p)}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          addSchedule(addPicker.dayOfWeek, addPicker.startTime, addPicker.endTime);
+                        }}
+                        style={{
+                          width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
+                          background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                          color: "white", fontWeight: 600, fontSize: 13,
+                        }}
+                      >
+                        Xác nhận
+                      </button>
+                    </>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
           );
         })}
@@ -421,12 +629,12 @@ function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSch
     </div>
   );
 }
+
 interface BillsTableProps {
   bills: BillSummary[];
-  studentId: number;
 }
 
-function BillsTable({ bills, studentId }: BillsTableProps) {
+function BillsTable({ bills }: BillsTableProps) {
   return (
     <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>

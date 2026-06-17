@@ -2,10 +2,6 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Bell, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 interface Props {
@@ -14,85 +10,166 @@ interface Props {
   notificationsEnabled: boolean;
 }
 
+async function subscribePush(): Promise<PushSubscription | null> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.ready;
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidKey) return null;
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) return existing;
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return null;
+  return reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+  });
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
+const cardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #F4D8DE",
+  borderRadius: "12px",
+  padding: "22px 24px",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  background: "#FFF8FA",
+  border: "1px solid #F4D8DE",
+  borderRadius: "12px",
+  padding: "9px 12px",
+  fontSize: "14px",
+  color: "#2C1820",
+  outline: "none",
+  fontFamily: "inherit",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: "12px",
+  fontWeight: 500,
+  color: "#6B4858",
+  marginBottom: "6px",
+};
+
 export default function SettingsClient({ userEmail, userName, notificationsEnabled: initialEnabled }: Props) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
 
-  async function save(value: boolean) {
+  async function handleSave() {
     setSaving(true);
     try {
+      if (enabled) {
+        const sub = await subscribePush();
+        if (!sub) {
+          toast.error("Trình duyệt không hỗ trợ hoặc quyền bị từ chối");
+          return;
+        }
+        await fetch("/api/notifications/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub.toJSON()),
+        });
+      } else {
+        await fetch("/api/notifications/subscribe", { method: "DELETE" });
+      }
       const res = await fetch("/api/notifications/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationsEnabled: value }),
+        body: JSON.stringify({ notificationsEnabled: enabled }),
       });
       if (!res.ok) { toast.error("Lưu thất bại"); return; }
-      setEnabled(value);
       toast.success("Đã lưu cài đặt");
+    } catch {
+      toast.error("Có lỗi xảy ra");
     } finally {
       setSaving(false);
     }
   }
 
-  async function testReminder() {
-    setTesting(true);
-    try {
-      await fetch("/api/notifications/test", { method: "POST" });
-      toast.success("Đã chạy nhắc nhở thủ công");
-    } catch {
-      toast.error("Thất bại");
-    } finally {
-      setTesting(false);
-    }
-  }
+  const hdrStyle: React.CSSProperties = {
+    height: "64px", padding: "0 32px", display: "flex", alignItems: "center",
+    borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
+  };
 
   return (
-    <div className="p-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Cài đặt</h1>
+    <div className="flex flex-col h-full overflow-auto">
+      <div style={hdrStyle}>
+        <h1 style={{ fontSize: "20px", fontWeight: 600, color: "#2C1820", letterSpacing: "-0.4px", margin: 0 }}>
+          Cài đặt
+        </h1>
+      </div>
 
-      {/* Notifications */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Bell className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-gray-900">Thông báo nhắc nhở</h2>
-        </div>
-        <p className="text-sm text-gray-400 mb-5">Tự động nhắc lịch dạy lúc 7:00 sáng mỗi ngày</p>
-
-        <div className="bg-pink-50/50 rounded-xl p-4 mb-4 flex items-center justify-between">
-          <div>
-            <div className="font-medium text-sm">Bật nhắc nhở hàng ngày</div>
-            <div className="text-xs text-gray-400">7:00 sáng — Asia/Ho_Chi_Minh</div>
+    <div style={{ padding: "24px 32px", maxWidth: "560px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        {/* Notifications */}
+        <div style={cardStyle}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820", marginBottom: "4px" }}>
+            Thông báo nhắc nhở
           </div>
-          <Switch
-            checked={enabled}
-            onCheckedChange={save}
+          <div style={{ fontSize: "13px", color: "#A87888", marginBottom: "20px" }}>
+            Nhận nhắc nhở về lịch dạy và hóa đơn mỗi ngày
+          </div>
+
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 16px", background: "#FFF8FA",
+            border: "1px solid #F4D8DE", borderRadius: "8px", marginBottom: "12px",
+          }}>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 500, color: "#2C1820" }}>Push notification</div>
+              <div style={{ fontSize: "12px", color: "#A87888" }}>Bật thông báo trên trình duyệt</div>
+            </div>
+            <Switch checked={enabled} onCheckedChange={setEnabled} disabled={saving} />
+          </div>
+
+          <button
+            onClick={handleSave}
             disabled={saving}
-          />
+            style={{
+              width: "100%",
+              background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+              color: "white",
+              border: "none",
+              borderRadius: "10px",
+              padding: "10px 0",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? "Đang lưu..." : "Lưu cài đặt"}
+          </button>
         </div>
 
-        <Button variant="outline" onClick={testReminder} disabled={testing} className="w-full">
-          {testing ? "Đang chạy..." : "Chạy thử nhắc nhở"}
-        </Button>
-      </div>
-
-      {/* Account info */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <User className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-gray-900">Thông tin tài khoản</h2>
-        </div>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label>Tên</Label>
-            <Input value={userName ?? ""} disabled className="bg-gray-50" />
+        {/* Account info */}
+        <div style={cardStyle}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820", marginBottom: "16px" }}>
+            Thông tin tài khoản
           </div>
-          <div className="space-y-1">
-            <Label>Email</Label>
-            <Input value={userEmail} disabled className="bg-gray-50" />
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div>
+              <label style={labelStyle}>Tên giáo viên</label>
+              <input style={inputStyle} type="text" defaultValue={userName ?? ""} readOnly />
+            </div>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input style={inputStyle} type="text" defaultValue={userEmail} readOnly />
+            </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

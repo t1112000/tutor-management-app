@@ -31,7 +31,9 @@ export function TimePicker({ label, value, onChange, onConfirm, open, onOpenChan
 
   function handleConfirm() {
     onConfirm();
-    onOpenChange(false);
+    // Don't call onOpenChange(false) here — parent's `open` prop closes the popover
+    // when state transitions (start→end phase) or addPicker is set to null.
+    // Calling it would race with onConfirm's setState and reset addPicker to null.
   }
 
   const arrowBtn: React.CSSProperties = {
@@ -81,10 +83,10 @@ export function TimePicker({ label, value, onChange, onConfirm, open, onOpenChan
         <button
           onClick={handleConfirm}
           style={{
-            width: "100%", height: 44,
+            width: "100%", height: 36,
             background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
-            border: "none", borderRadius: 12,
-            color: "white", fontWeight: 700, fontSize: 15, cursor: "pointer",
+            border: "none", borderRadius: 10,
+            color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer",
           }}
         >
           Xác nhận
