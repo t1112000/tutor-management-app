@@ -305,5 +305,120 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
   );
 }
 
-function ScheduleCard(_: any) { return null; }
+interface ScheduleCardProps {
+  student: Student;
+  addPicker: AddPicker | null;
+  setAddPicker: React.Dispatch<React.SetStateAction<AddPicker | null>>;
+  removeSchedule: (id: number) => void;
+  addSchedule: (dow: number, start: string, end: string) => void;
+}
+
+function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSchedule }: ScheduleCardProps) {
+  return (
+    <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24, marginBottom: 20 }}>
+      <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: "0 0 20px" }}>
+        Lịch dạy cố định hàng tuần
+      </h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+        {DAY_NAMES.map((dayName, idx) => {
+          const dow = DAY_VALUES[idx];
+          const daySchedules = student.schedules.filter((s) => s.dayOfWeek === dow);
+          const isPickingStart = addPicker?.phase === "start" && addPicker.dayOfWeek === dow;
+          const isPickingEnd = addPicker?.phase === "end" && addPicker.dayOfWeek === dow;
+
+          return (
+            <div
+              key={dow}
+              style={{
+                border: "1px dashed #F4D8DE", borderRadius: 12, padding: 10,
+                minHeight: 140, display: "flex", flexDirection: "column", gap: 6,
+              }}
+            >
+              <div style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "#A87888", marginBottom: 4 }}>
+                {dayName}
+              </div>
+
+              {daySchedules.map((s) => (
+                <div
+                  key={s.id}
+                  style={{
+                    background: "#EBF3FD", border: "1px solid #BEDAF5",
+                    borderRadius: 8, padding: "6px 8px", position: "relative",
+                  }}
+                >
+                  <button
+                    onClick={() => removeSchedule(s.id)}
+                    style={{
+                      position: "absolute", top: 4, right: 4,
+                      background: "#FECACA", border: "none", borderRadius: "50%",
+                      width: 18, height: 18, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                    }}
+                  >
+                    <X size={10} color="#EF4444" />
+                  </button>
+                  <div style={{ fontSize: 10, color: "#6B7280" }}>Bắt đầu</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#3B82F6" }}>{s.startTime}</div>
+                  <div style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>Kết thúc</div>
+                  <div style={{ fontSize: 13, color: "#4B5563" }}>{s.endTime}</div>
+                </div>
+              ))}
+
+              {/* Start-time picker — trigger is the + button */}
+              <TimePicker
+                label="Giờ bắt đầu"
+                value={isPickingStart ? (addPicker as { startTime: string }).startTime : "07:00"}
+                onChange={(v) =>
+                  setAddPicker((p) => p?.phase === "start" && p.dayOfWeek === dow ? { ...p, startTime: v } : p)
+                }
+                onConfirm={() =>
+                  setAddPicker((p) =>
+                    p?.phase === "start" && p.dayOfWeek === dow
+                      ? { phase: "end", dayOfWeek: dow, startTime: p.startTime, endTime: "08:00" }
+                      : p
+                  )
+                }
+                open={isPickingStart}
+                onOpenChange={(o) => !o && setAddPicker(null)}
+              >
+                <button
+                  onClick={() =>
+                    setAddPicker({ phase: "start", dayOfWeek: dow, startTime: "07:00" })
+                  }
+                  style={{
+                    marginTop: "auto", width: "100%", height: 32,
+                    background: "none", border: "1px dashed #F4D8DE",
+                    borderRadius: 8, cursor: "pointer", color: "#C4A0A8",
+                    fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  +
+                </button>
+              </TimePicker>
+
+              {/* End-time picker — programmatically opened after start confirmed */}
+              <TimePicker
+                label="Giờ kết thúc"
+                value={isPickingEnd ? (addPicker as { endTime: string }).endTime : "08:00"}
+                onChange={(v) =>
+                  setAddPicker((p) => p?.phase === "end" && p.dayOfWeek === dow ? { ...p, endTime: v } : p)
+                }
+                onConfirm={() => {
+                  if (isPickingEnd && addPicker?.phase === "end") {
+                    addSchedule(addPicker.dayOfWeek, addPicker.startTime, addPicker.endTime);
+                  }
+                }}
+                open={isPickingEnd}
+                onOpenChange={(o) => !o && setAddPicker(null)}
+              >
+                <span />
+              </TimePicker>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 function BillsTable(_: any) { return null; }
