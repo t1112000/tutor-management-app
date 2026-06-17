@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SubjectBadge } from "@/components/ui/subject-badge";
 import { formatMoneyVND } from "@/lib/time";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface StudentReport {
   studentId: number;
@@ -22,21 +23,8 @@ interface Report {
   students: StudentReport[];
 }
 
-const hdrStyle: React.CSSProperties = {
-  height: "64px",
-  padding: "0 32px",
-  display: "flex",
-  alignItems: "center",
-  borderBottom: "1px solid #F4D8DE",
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(12px)",
-  position: "sticky",
-  top: 0,
-  zIndex: 10,
-  flexShrink: 0,
-};
-
 export default function ReportClient() {
+  const isMobile = useIsMobile();
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -70,7 +58,7 @@ export default function ReportClient() {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* Sticky header */}
-      <div style={hdrStyle}>
+      <div style={{ height: "64px", padding: isMobile ? "0 16px" : "0 32px", display: "flex", alignItems: "center", borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0 }}>
         <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h1 style={{ fontSize: "22px", fontWeight: 600, color: "#2C1820", letterSpacing: "-0.5px", margin: 0 }}>
             Báo cáo thu nhập
@@ -96,9 +84,9 @@ export default function ReportClient() {
       </div>
 
       {/* Body */}
-      <div style={{ padding: "24px 32px" }}>
+      <div style={{ padding: isMobile ? "16px" : "24px 32px" }}>
         {/* Summary cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: "16px", marginBottom: "24px" }}>
           {/* Paid */}
           <div style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "20px 22px" }}>
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>Đã thanh toán</div>
@@ -136,39 +124,78 @@ export default function ReportClient() {
           <div style={{ padding: "14px 20px", borderBottom: "1px solid #F4D8DE" }}>
             <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820" }}>Chi tiết theo học sinh</div>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#FFF8FA" }}>
-                <th style={{ padding: "9px 16px", textAlign: "left", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Học sinh</th>
-                <th style={{ padding: "9px 16px", textAlign: "left", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Môn</th>
-                <th style={{ padding: "9px 16px", textAlign: "right", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Đã thu</th>
-                <th style={{ padding: "9px 16px", textAlign: "right", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Chưa thu</th>
-                <th style={{ padding: "9px 16px", textAlign: "right", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Tổng cộng</th>
-              </tr>
-            </thead>
-            <tbody>
+          {isMobile ? (
+            <div style={{ padding: "12px 14px" }}>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</td></tr>
+                <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</div>
               ) : !report?.students.length ? (
-                <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Không có dữ liệu</td></tr>
-              ) : report.students.map((s) => (
-                <tr key={s.studentId} style={{ borderTop: "1px solid #F4D8DE" }}>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "9999px", background: "rgba(59,111,212,0.13)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b6fd4", fontSize: "11px", fontWeight: 700, flexShrink: 0 }}>
-                        {s.name.split(" ").slice(-1)[0]?.[0]?.toUpperCase() ?? "?"}
+                <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Không có dữ liệu</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {report.students.map((s) => (
+                    <div key={s.studentId} style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <div style={{ width: "28px", height: "28px", borderRadius: "9999px", background: "rgba(59,111,212,0.13)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b6fd4", fontSize: "11px", fontWeight: 700, flexShrink: 0 }}>
+                            {s.name.split(" ").slice(-1)[0]?.[0]?.toUpperCase() ?? "?"}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820" }}>{s.name}</div>
+                            <SubjectBadge subject={s.subject} />
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "15px", fontWeight: 700, color: "#1a8a3c" }}>{formatMoneyVND(s.total)}</div>
                       </div>
-                      <span style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820" }}>{s.name}</span>
+                      <div style={{ display: "flex", gap: "16px" }}>
+                        <div>
+                          <div style={{ fontSize: "11px", color: "#A87888" }}>Đã thu</div>
+                          <div style={{ fontSize: "13px", fontWeight: 600, color: "#1a8a3c" }}>{formatMoneyVND(s.paid)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "11px", color: "#A87888" }}>Chưa thu</div>
+                          <div style={{ fontSize: "13px", fontWeight: 600, color: "#b45309" }}>{formatMoneyVND(s.unpaid)}</div>
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}><SubjectBadge subject={s.subject} /></td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontSize: "13px", fontWeight: 500, color: "#1a8a3c" }}>{formatMoneyVND(s.paid)}</td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontSize: "13px", fontWeight: 500, color: "#b45309" }}>{formatMoneyVND(s.unpaid)}</td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontSize: "14px", fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(s.total)}</td>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#FFF8FA" }}>
+                  <th style={{ padding: "9px 16px", textAlign: "left", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Học sinh</th>
+                  <th style={{ padding: "9px 16px", textAlign: "left", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Môn</th>
+                  <th style={{ padding: "9px 16px", textAlign: "right", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Đã thu</th>
+                  <th style={{ padding: "9px 16px", textAlign: "right", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Chưa thu</th>
+                  <th style={{ padding: "9px 16px", textAlign: "right", fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.4px" }}>Tổng cộng</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</td></tr>
+                ) : !report?.students.length ? (
+                  <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Không có dữ liệu</td></tr>
+                ) : report.students.map((s) => (
+                  <tr key={s.studentId} style={{ borderTop: "1px solid #F4D8DE" }}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ width: "28px", height: "28px", borderRadius: "9999px", background: "rgba(59,111,212,0.13)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b6fd4", fontSize: "11px", fontWeight: 700, flexShrink: 0 }}>
+                          {s.name.split(" ").slice(-1)[0]?.[0]?.toUpperCase() ?? "?"}
+                        </div>
+                        <span style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820" }}>{s.name}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}><SubjectBadge subject={s.subject} /></td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: "13px", fontWeight: 500, color: "#1a8a3c" }}>{formatMoneyVND(s.paid)}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: "13px", fontWeight: 500, color: "#b45309" }}>{formatMoneyVND(s.unpaid)}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: "14px", fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(s.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
