@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
         studentId: parsed.data.studentId,
         sessionCount: parsed.data.sessionCount,
         totalAmount: parsed.data.totalAmount,
+        startDate: parsed.data.startDate ?? null,
         notes: parsed.data.notes ?? null,
         createdBy: user!.id,
         status: "unpaid",

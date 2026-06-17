@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-helpers";
-import { Student, StudentSchedule, Bill } from "@/lib/db/index";
+import { Student, StudentSchedule, Bill, BillSession } from "@/lib/db/index";
 import { studentSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
@@ -15,7 +15,12 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     where: { id: Number(id), createdBy: user!.id },
     include: [
       { model: StudentSchedule, as: "schedules" },
-      { model: Bill, as: "bills", order: [["createdAt", "DESC"]] as any },
+      {
+        model: Bill,
+        as: "bills",
+        include: [{ model: BillSession, as: "sessions" }],
+        order: [["createdAt", "DESC"]] as any,
+      },
     ],
   });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -16,6 +16,7 @@ export class Bill extends Model<
   declare status: "unpaid" | "paid";
   declare paidAt: Date | null;
   declare notes: string | null;
+  declare startDate: string | null; // DATEONLY
   declare createdBy: ForeignKey<User["id"]>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -37,6 +38,7 @@ export function initBill(sequelize: Sequelize) {
       },
       paidAt: { type: DataTypes.DATE, allowNull: true },
       notes: { type: DataTypes.TEXT, allowNull: true },
+      startDate: { type: DataTypes.DATEONLY, allowNull: true },
       createdBy: { type: DataTypes.INTEGER, allowNull: false },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
