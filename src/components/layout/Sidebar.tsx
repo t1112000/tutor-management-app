@@ -39,7 +39,7 @@ export default function Sidebar({ user }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-white border-r border-border shrink-0 transition-[width] duration-200 overflow-hidden",
+        "hidden md:flex flex-col h-screen bg-white border-r border-border shrink-0 transition-[width] duration-200 overflow-hidden",
         expanded ? "w-[240px]" : "w-[56px]"
       )}
     >

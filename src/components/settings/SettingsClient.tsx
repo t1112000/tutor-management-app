@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { signOut } from "next-auth/react";
 import { Switch } from "@/components/ui/switch";
 
 interface Props {
@@ -167,6 +168,35 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
               <input style={inputStyle} type="text" defaultValue={userEmail} readOnly />
             </div>
           </div>
+        </div>
+
+        {/* Sign out */}
+        <div style={cardStyle}>
+          <button
+            onClick={() => signOut({ callbackUrl: "/signin" })}
+            style={{
+              width: "100%",
+              background: "#FFF8FA",
+              color: "#E8788A",
+              border: "1px solid #F4D8DE",
+              borderRadius: "10px",
+              padding: "12px 0",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#FFE8EE";
+              e.currentTarget.style.borderColor = "#E8788A";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#FFF8FA";
+              e.currentTarget.style.borderColor = "#F4D8DE";
+            }}
+          >
+            Đăng xuất
+          </button>
         </div>
       </div>
     </div>
