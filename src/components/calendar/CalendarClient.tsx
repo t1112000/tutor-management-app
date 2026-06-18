@@ -359,9 +359,8 @@ export default function CalendarClient() {
           <div
             style={{
               display: "flex",
-              overflowX: "auto",
-              gap: "6px",
-              padding: "8px 16px",
+              gap: "4px",
+              padding: "8px 12px",
               borderBottom: "1px solid #F4D8DE",
               background: "white",
               flexShrink: 0,
@@ -375,8 +374,7 @@ export default function CalendarClient() {
                   key={i}
                   onClick={() => setSelectedDayIndex(i)}
                   style={{
-                    flexShrink: 0,
-                    minWidth: "44px",
+                    flex: 1,
                     padding: "6px 4px",
                     borderRadius: "10px",
                     border: "none",
