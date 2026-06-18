@@ -632,13 +632,17 @@ function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSch
                     <button
                       onClick={() => removeSchedule(s.id)}
                       style={{
-                        background: "#FECACA", border: "none", borderRadius: "50%",
-                        width: 36, height: 36, cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                        flexShrink: 0,
+                        background: "none", border: "none", cursor: "pointer",
+                        width: 36, height: 36, padding: 0, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
                       }}
                     >
-                      <X size={14} color="#EF4444" />
+                      <span style={{
+                        width: 22, height: 22, borderRadius: "50%", background: "#FECACA",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <X size={11} color="#EF4444" />
+                      </span>
                     </button>
                   </div>
                 ))}
