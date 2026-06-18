@@ -10,7 +10,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (response) return response;
   const { id } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const bill = await Bill.findOne({ where: { id: Number(id) } });
   if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const sessions = await BillSession.findAll({

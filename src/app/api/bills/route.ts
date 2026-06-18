@@ -14,8 +14,7 @@ export async function POST(req: NextRequest) {
   const parsed = billSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  // Verify student belongs to user
-  const student = await Student.findOne({ where: { id: parsed.data.studentId, createdBy: user!.id } });
+  const student = await Student.findOne({ where: { id: parsed.data.studentId } });
   if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
   const t = await sequelize.transaction();

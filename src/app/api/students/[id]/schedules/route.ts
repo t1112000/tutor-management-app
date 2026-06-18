@@ -12,7 +12,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const student = await Student.findOne({ where: { id: Number(id) } });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const schedules = await StudentSchedule.findAll({ where: { studentId: Number(id) } });
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const student = await Student.findOne({ where: { id: Number(id) } });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
@@ -35,12 +35,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json(schedule, { status: 201 });
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { user, response } = await requireUser();
+  if (response) return response;
+  const { id } = await params;
+
+  const student = await Student.findOne({ where: { id: Number(id) } });
+  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { scheduleId, startTime, endTime } = await req.json();
+  const schedule = await StudentSchedule.findOne({ where: { id: scheduleId, studentId: Number(id) } });
+  if (!schedule) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await schedule.update({ startTime, endTime });
+  return NextResponse.json(schedule);
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireUser();
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const student = await Student.findOne({ where: { id: Number(id) } });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { scheduleId } = await req.json();

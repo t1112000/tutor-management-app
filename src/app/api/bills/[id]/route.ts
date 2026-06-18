@@ -11,7 +11,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params;
 
   const bill = await Bill.findOne({
-    where: { id: Number(id), createdBy: user!.id },
+    where: { id: Number(id) },
     include: [
       { model: Student, as: "student" },
       { model: BillSession, as: "sessions", order: [["scheduledDate", "ASC"], ["startTime", "ASC"]] as any },
@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (response) return response;
   const { id } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const bill = await Bill.findOne({ where: { id: Number(id) } });
   if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (bill.status === "paid") return NextResponse.json({ error: "Paid bills cannot be modified" }, { status: 400 });
 

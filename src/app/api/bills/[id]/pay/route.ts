@@ -10,7 +10,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
   if (response) return response;
   const { id } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const bill = await Bill.findOne({ where: { id: Number(id) } });
   if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (bill.status === "paid") return NextResponse.json({ error: "Already paid" }, { status: 400 });
 

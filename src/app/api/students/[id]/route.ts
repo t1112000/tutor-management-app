@@ -12,7 +12,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params;
 
   const student = await Student.findOne({
-    where: { id: Number(id), createdBy: user!.id },
+    where: { id: Number(id) },
     include: [
       { model: StudentSchedule, as: "schedules" },
       {
@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const student = await Student.findOne({ where: { id: Number(id) } });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
@@ -49,7 +49,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
 
   const student = await Student.findOne({
-    where: { id: Number(id), createdBy: user!.id },
+    where: { id: Number(id) },
     include: [{ model: Bill, as: "bills", include: [{ model: BillSession, as: "sessions" }] }],
   });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });

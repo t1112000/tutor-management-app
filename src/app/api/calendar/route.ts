@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
       {
         model: Bill,
         as: "bill",
-        where: { createdBy: user!.id },
         include: [{ model: Student, as: "student" }],
       },
     ],

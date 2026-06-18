@@ -13,7 +13,7 @@ export async function PUT(
   if (response) return response;
   const { id, sid } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id), createdBy: user!.id } });
+  const bill = await Bill.findOne({ where: { id: Number(id) } });
   if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const session = await BillSession.findOne({ where: { id: Number(sid), billId: Number(id) } });

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (response) return response;
 
   const q = req.nextUrl.searchParams.get("q") ?? "";
-  const where: any = { createdBy: user!.id };
+  const where: any = {};
   if (q) where.name = { [Op.iLike]: `%${q}%` };
 
   const students = await Student.findAll({
