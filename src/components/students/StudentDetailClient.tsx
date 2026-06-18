@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useStudent, useAddSchedule, useRemoveSchedule, useEditSchedule } from "@/hooks/queries/use-student";
+import type { StudentDetail, Schedule, BillSummary } from "@/hooks/queries/use-student";
+import { useUpdateStudent, useDeleteStudent } from "@/hooks/queries/use-students";
+import type { StudentForm } from "@/hooks/queries/use-students";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -24,48 +28,6 @@ import { formatMoneyVND, formatDateVN } from "@/lib/time";
 import { STUDENT_COLORS } from "@/lib/student-colors";
 import useIsMobile from "@/hooks/use-is-mobile";
 
-interface Schedule {
-  id: number;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-}
-
-interface BillSummary {
-  id: number;
-  startDate: string | null;
-  sessionCount: number;
-  totalAmount: number;
-  status: "unpaid" | "paid";
-  sessions: Array<{ isAttended: boolean }>;
-}
-
-interface Student {
-  id: number;
-  name: string;
-  phone: string | null;
-  birthday: string | null;
-  subject: "english" | "chinese";
-  address: string | null;
-  notes: string | null;
-  parentName: string | null;
-  parentPhone: string | null;
-  color: string | null;
-  type: "offline" | "online";
-  schedules: Schedule[];
-  bills: BillSummary[];
-}
-
-interface FormData {
-  name: string;
-  phone: string;
-  birthday: string;
-  subject: "english" | "chinese";
-  address: string;
-  notes: string;
-  color: string | null;
-  type: "offline" | "online";
-}
 
 type AddPicker = { dayOfWeek: number; startTime: string; endTime: string };
 type EditPicker = { id: number; dayOfWeek: number; startTime: string; endTime: string };
@@ -96,7 +58,7 @@ const inputStyle: React.CSSProperties = {
 
 const DEFAULT_COLOR = "#6BA8F0";
 
-function studentToForm(s: Student): FormData {
+function studentToForm(s: StudentDetail): StudentForm {
   return {
     name: s.name,
     phone: s.phone ?? "",
@@ -131,30 +93,27 @@ export default function StudentDetailClient({
 }) {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const [student, setStudent] = useState<Student | null>(null);
-  const [form, setForm] = useState<FormData | null>(null);
+
+  const { data: student } = useStudent(studentId);
+  const { mutate: updateStudentMutation, isPending: saving } = useUpdateStudent(studentId);
+  const { mutate: deleteStudentMutation } = useDeleteStudent(studentId);
+  const { mutate: addScheduleMutation } = useAddSchedule(studentId);
+  const { mutate: removeScheduleMutation } = useRemoveSchedule(studentId);
+  const { mutate: editScheduleMutation } = useEditSchedule(studentId);
+
+  const [form, setForm] = useState<StudentForm | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [addPicker, setAddPicker] = useState<AddPicker | null>(null);
   const [editPicker, setEditPicker] = useState<EditPicker | null>(null);
 
-  const load = useCallback(async () => {
-    const res = await fetch(`/api/students/${studentId}`);
-    if (!res.ok) {
-      router.push("/students");
-      return;
-    }
-    const data: Student = await res.json();
-    setStudent(data);
-    setForm(studentToForm(data));
-    setIsEditing(false);
-  }, [studentId, router]);
-
+  // Sync form when query data arrives or updates (but not while editing)
   useEffect(() => {
-    load();
-  }, [load]);
+    if (student && !isEditing) {
+      setForm(studentToForm(student));
+    }
+  }, [student, isEditing]);
 
-  function updateForm(patch: Partial<FormData>) {
+  function updateForm(patch: Partial<StudentForm>) {
     setForm((f) => (f ? { ...f, ...patch } : f));
   }
 
@@ -168,90 +127,68 @@ export default function StudentDetailClient({
     setIsEditing(false);
   }
 
-  async function saveStudent() {
+  function saveStudent() {
     if (!form) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/students/${studentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        toast.error("Lưu thất bại");
-        return;
-      }
-      toast.success("Đã lưu thông tin");
-      load();
-    } finally {
-      setSaving(false);
-    }
+    updateStudentMutation(form, {
+      onSuccess: () => {
+        toast.success("Đã lưu thông tin");
+        setIsEditing(false);
+      },
+      onError: () => toast.error("Lưu thất bại"),
+    });
   }
 
-  async function pickColor(hex: string) {
+  function pickColor(hex: string) {
     if (!form) return;
     const newForm = { ...form, color: hex };
     setForm(newForm);
-    const res = await fetch(`/api/students/${studentId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newForm),
+    updateStudentMutation(newForm, {
+      onError: () => toast.error("Không thể lưu màu"),
     });
-    if (!res.ok) {
-      toast.error("Không thể lưu màu");
-      return;
-    }
-    setStudent((s) => (s ? { ...s, color: hex } : s));
   }
 
-  async function deleteStudent() {
+  function deleteStudent() {
     if (!confirm("Xóa học sinh này? Hành động không thể hoàn tác.")) return;
-    await fetch(`/api/students/${studentId}`, { method: "DELETE" });
-    toast.success("Đã xóa học sinh");
-    router.push("/students");
-  }
-
-  async function removeSchedule(scheduleId: number) {
-    await fetch(`/api/students/${studentId}/schedules`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduleId }),
+    deleteStudentMutation(undefined, {
+      onSuccess: () => {
+        toast.success("Đã xóa học sinh");
+        router.push("/students");
+      },
     });
-    load();
   }
 
-  async function addSchedule(
+  function removeSchedule(scheduleId: number) {
+    removeScheduleMutation(scheduleId);
+  }
+
+  function addSchedule(
     dayOfWeek: number,
     startTime: string,
     endTime: string,
   ) {
-    const res = await fetch(`/api/students/${studentId}/schedules`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dayOfWeek, startTime, endTime }),
-    });
-    if (!res.ok) {
-      toast.error("Thêm lịch thất bại");
-      return;
-    }
-    toast.success("Đã thêm lịch");
-    setAddPicker(null);
-    load();
+    addScheduleMutation(
+      { dayOfWeek, startTime, endTime },
+      {
+        onSuccess: () => {
+          toast.success("Đã thêm lịch");
+          setAddPicker(null);
+        },
+        onError: () => toast.error("Thêm lịch thất bại"),
+      }
+    );
   }
 
-  async function editSchedule(scheduleId: number, startTime: string, endTime: string) {
-    const res = await fetch(`/api/students/${studentId}/schedules`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduleId, startTime, endTime }),
-    });
-    if (!res.ok) {
-      toast.error("Cập nhật lịch thất bại");
-      return;
-    }
-    toast.success("Đã cập nhật lịch");
-    setEditPicker(null);
-    load();
+  function editSchedule(scheduleId: number, startTime: string, endTime: string) {
+    editScheduleMutation(
+      { scheduleId, startTime, endTime },
+      {
+        onSuccess: () => {
+          toast.success("Đã cập nhật lịch");
+          setEditPicker(null);
+        },
+        onError: () => toast.error("Cập nhật lịch thất bại"),
+      }
+    );
   }
 
   if (!student || !form) {
@@ -1025,7 +962,7 @@ function TimeSpinnerCol({
 
 // ── ScheduleCard ─────────────────────────────────────────────────────────────
 interface ScheduleCardProps {
-  student: Student;
+  student: StudentDetail;
   addPicker: AddPicker | null;
   setAddPicker: React.Dispatch<React.SetStateAction<AddPicker | null>>;
   editPicker: EditPicker | null;
