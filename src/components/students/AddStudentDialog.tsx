@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCreateStudent } from "@/hooks/queries/use-students";
 
 interface Props {
   open: boolean;
@@ -29,26 +30,22 @@ const labelStyle: React.CSSProperties = {
 export default function AddStudentDialog({ open, onOpenChange, onCreated }: Props) {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", phone: "", subject: "english", address: "", type: "offline" });
-  const [saving, setSaving] = useState(false);
+  const { mutate: createStudent, isPending: saving } = useCreateStudent();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("Tên học sinh không được trống"); return; }
-    setSaving(true);
-    try {
-      const res = await fetch("/api/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, birthday: "", notes: "", parentName: "", parentPhone: "" }),
-      });
-      if (!res.ok) { toast.error("Thêm học sinh thất bại"); return; }
-      const student = await res.json();
-      toast.success("Đã thêm học sinh");
-      onCreated();
-      router.push(`/students/${student.id}`);
-    } finally {
-      setSaving(false);
-    }
+    createStudent(
+      { ...form, birthday: "", notes: "", parentName: "", parentPhone: "" },
+      {
+        onSuccess: (student) => {
+          toast.success("Đã thêm học sinh");
+          onCreated();
+          router.push(`/students/${student.id}`);
+        },
+        onError: () => toast.error("Thêm học sinh thất bại"),
+      }
+    );
   }
 
   const isEnglish = form.subject === "english";

@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SubjectBadge } from "@/components/ui/subject-badge";
 import AddStudentDialog from "./AddStudentDialog";
 import useIsMobile from "@/hooks/use-is-mobile";
-
-interface Student {
-  id: number;
-  name: string;
-  subject: "english" | "chinese";
-  phone: string | null;
-  bills?: Array<{ id: number }>;
-}
+import { useStudents } from "@/hooks/queries/use-students";
 
 const AVATAR_COLORS = [
   "#6BA8F0", "#F07888", "#7ECBA0", "#B088F0",
@@ -42,28 +35,20 @@ function getHdrStyle(isMobile: boolean): React.CSSProperties {
 export default function StudentsClient() {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [inputValue, setInputValue] = useState("");
+  const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
 
-  async function load(q = "") {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/students${q ? `?q=${encodeURIComponent(q)}` : ""}`);
-      const data = await res.json();
-      setStudents(data);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Debounce the search query 300ms
+  useEffect(() => {
+    const t = setTimeout(() => setQ(inputValue), 300);
+    return () => clearTimeout(t);
+  }, [inputValue]);
 
-  useEffect(() => { load(); }, []);
+  const { data: students = [], isLoading: loading } = useStudents(q);
 
-  function onSearch(q: string) {
-    setSearch(q);
-    const timer = setTimeout(() => load(q), 300);
-    return () => clearTimeout(timer);
+  function onSearch(value: string) {
+    setInputValue(value);
   }
 
   return (
@@ -100,7 +85,7 @@ export default function StudentsClient() {
             <input
               type="text"
               placeholder="Tìm theo tên, số điện thoại..."
-              value={search}
+              value={inputValue}
               onChange={(e) => onSearch(e.target.value)}
               style={{ width: "100%", background: "#FFF8FA", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "9px 12px 9px 34px", fontSize: "14px", color: "#2C1820", outline: "none", fontFamily: "inherit" }}
               onFocus={(e) => { e.target.style.borderColor = "#E8788A"; e.target.style.boxShadow = "0 0 0 3px rgba(232,120,138,0.20)"; }}
@@ -201,7 +186,7 @@ export default function StudentsClient() {
       <AddStudentDialog
         open={showAdd}
         onOpenChange={setShowAdd}
-        onCreated={() => { setShowAdd(false); load(search); }}
+        onCreated={() => setShowAdd(false)}
       />
     </div>
   );
