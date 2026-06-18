@@ -14,26 +14,7 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { formatMoneyVND } from "@/lib/time";
-
-interface BillSession {
-  id: number;
-  scheduledDate: string;
-  startTime: string;
-  endTime: string;
-  isAttended: boolean;
-  notes: string | null;
-}
-
-interface Bill {
-  id: number;
-  sessionCount: number;
-  totalAmount: number;
-  status: "unpaid" | "paid";
-  paidAt: string | null;
-  notes: string | null;
-  student: { id: number; name: string; subject: "english" | "chinese" };
-  sessions: BillSession[];
-}
+import { useBill, useUpdateSession, usePayBill, Bill, BillSession } from "@/hooks/queries/use-bill";
 
 function fmtDate(d: string) {
   const [y, m, day] = d.split("-");
@@ -114,46 +95,30 @@ function TimeSpinner({
 export default function BillDetailClient({ billId }: { billId: number }) {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const [bill, setBill] = useState<Bill | null>(null);
-  const [payLoading, setPayLoading] = useState(false);
+  const { data: bill } = useBill(billId);
+  const { mutate: updateSessionMutation } = useUpdateSession(billId);
+  const { mutate: markPaidMutation, isPending: payLoading } = usePayBill(billId);
   const [timeEdit, setTimeEdit] = useState<{ id: number; start: string; end: string; open: boolean } | null>(null);
   const [editingNotes, setEditingNotes] = useState<{ id: number; value: string } | null>(null);
   const notesRef = useRef<HTMLInputElement>(null);
-
-  async function load() {
-    const res = await fetch(`/api/bills/${billId}`);
-    if (res.ok) setBill(await res.json());
-  }
-
-  useEffect(() => { load(); }, [billId]);
 
   useEffect(() => {
     if (editingNotes) notesRef.current?.focus();
   }, [editingNotes?.id]);
 
-  async function saveSession(sessionId: number, updates: Record<string, unknown>) {
-    await fetch(`/api/bills/${billId}/sessions/${sessionId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
+  function saveSession(sessionId: number, updates: Record<string, unknown>) {
+    updateSessionMutation({ sessionId, updates });
+  }
+
+  function toggleAttended(sessionId: number, current: boolean) {
+    saveSession(sessionId, { isAttended: !current });
+  }
+
+  function markPaid() {
+    markPaidMutation(undefined, {
+      onSuccess: () => toast.success("Đã đánh dấu thanh toán"),
+      onError: () => toast.error("Thao tác thất bại"),
     });
-    load();
-  }
-
-  async function toggleAttended(sessionId: number, current: boolean) {
-    await saveSession(sessionId, { isAttended: !current });
-  }
-
-  async function markPaid() {
-    setPayLoading(true);
-    try {
-      const res = await fetch(`/api/bills/${billId}/pay`, { method: "POST" });
-      if (!res.ok) { toast.error("Thao tác thất bại"); return; }
-      toast.success("Đã đánh dấu thanh toán");
-      load();
-    } finally {
-      setPayLoading(false);
-    }
   }
 
   if (!bill) return (
