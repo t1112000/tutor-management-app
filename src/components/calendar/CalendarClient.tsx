@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { weekStartStr, addDaysStr, formatWeekRangeVN } from "@/lib/time";
 import { findColor, hashColor } from "@/lib/student-colors";
 import useIsMobile from "@/hooks/use-is-mobile";
+import { useCalendar } from "@/hooks/queries/use-calendar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Session {
@@ -70,8 +71,7 @@ export default function CalendarClient() {
   const [weekStart, setWeekStart] = useState(() =>
     weekStartStr(new Date().toISOString().slice(0, 10)),
   );
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: sessions = [], isLoading: loading } = useCalendar(weekStart);
   const [selected, setSelected] = useState<Session | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -85,14 +85,6 @@ export default function CalendarClient() {
     const idx = initialDays.indexOf(todayStr);
     return idx >= 0 ? idx : 0;
   });
-
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/calendar?weekStart=${weekStart}`)
-      .then((r) => r.json())
-      .then(setSessions)
-      .finally(() => setLoading(false));
-  }, [weekStart]);
 
   // Dynamic grid height: end 1 hour after the latest session, minimum 20:00
   const latestEndHour =
