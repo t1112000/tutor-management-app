@@ -1,4 +1,4 @@
-name: Deploy to VPS
+name: 🚀 Deploy MyClass
 
 on:
   push:
@@ -7,9 +7,10 @@ on:
 
 jobs:
   deploy:
+    name: Deploy to VPS
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: 🔌 Connect & Deploy
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -17,7 +18,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 8686
           script: |
+            echo "📦 Pulling latest code..."
             cd /var/www/tutor-management-app
             git pull origin main
+
+            echo "🐳 Rebuilding Docker containers..."
             docker compose up -d --build
+
+            echo "🧹 Cleaning up old images..."
             docker image prune -f
+
+            echo "✅ Deploy complete!"
