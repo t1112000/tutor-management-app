@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: "MyClass - Quản lý dạy học",
     description: "Quản lý lớp học dễ dàng. Mọi thứ trong tầm tay!",
     siteName: "MyClass",
-    images: [{ url: "/og-image.png", width: 1672, height: 941, alt: "MyClass" }],
+    images: [{ url: "/og-image.png", width: 1730, height: 909, alt: "MyClass" }],
   },
   twitter: {
     card: "summary_large_image",

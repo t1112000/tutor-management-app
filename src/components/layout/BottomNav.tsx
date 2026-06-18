@@ -19,6 +19,15 @@ export default function BottomNav() {
       className="fixed bottom-0 inset-x-0 z-50 md:hidden pointer-events-none"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
+      <div
+        className="absolute bottom-0 inset-x-0 pointer-events-none"
+        style={{
+          height: "env(safe-area-inset-bottom)",
+          background: "rgba(255,255,255,0.7)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+        }}
+      />
       <div className="mx-4 mb-3 pointer-events-auto">
         <div className="relative flex h-16 items-center rounded-full bg-white/95 backdrop-blur-sm border border-white shadow-[0_8px_32px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] px-1.5">
 

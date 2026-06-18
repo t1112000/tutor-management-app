@@ -126,7 +126,7 @@ export default function Sidebar({ user }: SidebarProps) {
                 <span className="text-[11px] text-[#A87888] leading-tight">Giáo viên</span>
               </div>
               <button
-                onClick={() => signOut({ callbackUrl: "/signin" })}
+                onClick={() => signOut({ callbackUrl: `${window.location.origin}/signin` })}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-[#A87888] hover:bg-red-50 hover:text-red-400 transition-colors shrink-0"
                 title="Đăng xuất"
               >
@@ -137,7 +137,7 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
         {!expanded && (
           <button
-            onClick={() => signOut({ callbackUrl: "/signin" })}
+            onClick={() => signOut({ callbackUrl: `${window.location.origin}/signin` })}
             className="w-full py-2.5 flex items-center justify-center text-[#A87888] hover:bg-red-50 hover:text-red-400 transition-colors border-t border-border"
             title="Đăng xuất"
           >

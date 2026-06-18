@@ -175,7 +175,7 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
         {/* Sign out */}
         <div style={cardStyle}>
           <button
-            onClick={() => signOut({ callbackUrl: "/signin" })}
+            onClick={() => signOut({ callbackUrl: `${window.location.origin}/signin` })}
             style={{
               width: "100%",
               background: "#FFF8FA",
