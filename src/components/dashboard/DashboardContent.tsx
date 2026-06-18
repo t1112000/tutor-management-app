@@ -64,7 +64,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
         const today = new Date().toISOString().slice(0, 10);
         setStats({
           activeStudents: students.length,
-          unpaidBills: students.reduce((a: number, s: any) => a + (s.bills?.filter((b: any) => b.status === "unpaid").length ?? 0), 0),
+          unpaidBills: report.unpaidBillCount ?? 0,
           unpaidTotal: report.unpaid,
           todaySessions: calendarSessions.filter((s: any) => s.scheduledDate === today),
           weekSessionCount: calendarSessions.length,
