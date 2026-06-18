@@ -192,153 +192,133 @@ export default function BillDetailClient({ billId }: { billId: number }) {
       {/* Scrollable content */}
       <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "16px" : "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
 
-        {/* Info card */}
-        <div style={{ ...cardStyle, padding: "20px 28px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", gap: isMobile ? "12px" : undefined }}>
-          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "12px" : "48px" }}>
-            <div>
-              <div style={labelStyle}>Học sinh</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{bill.student.name}</div>
-            </div>
-            <div>
-              <div style={labelStyle}>Học phí</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(bill.totalAmount)}</div>
-            </div>
-            <div>
-              <div style={labelStyle}>Tiến độ</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{attended}/{bill.sessionCount} buổi đã học</div>
-            </div>
-          </div>
+        {isMobile ? (
+          /* ── Mobile layout ── */
+          <>
+            {/* Compact summary card: name + status + amount + progress + pay button */}
+            <div style={{ ...cardStyle, padding: "18px 20px" }}>
+              {/* Name + status */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#2C1820", lineHeight: 1.2 }}>{bill.student.name}</div>
+                  <div style={{ fontSize: 12, color: "#A87888", marginTop: 3 }}>
+                    {bill.student.subject === "english" ? "Tiếng Anh" : "Tiếng Trung"}
+                  </div>
+                </div>
+                <span style={{
+                  padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, flexShrink: 0,
+                  background: isPaid ? "#D1FAE5" : "#FEF3C7",
+                  color: isPaid ? "#065F46" : "#92400E",
+                }}>
+                  {isPaid ? "Đã thanh toán" : "Chưa thanh toán"}
+                </span>
+              </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{
-              padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600,
-              background: isPaid ? "#D1FAE5" : "#FEF3C7",
-              color: isPaid ? "#065F46" : "#92400E",
-            }}>
-              {isPaid ? "Đã thanh toán" : "Chưa thanh toán"}
-            </span>
+              {/* Amount + sessions count */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#A87888", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>Học phí</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#E8788A" }}>{formatMoneyVND(bill.totalAmount)}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>{attended}/{bill.sessionCount} buổi</div>
+                  <div style={{ fontSize: 12, color: "#E8788A", fontWeight: 700 }}>{pct}%</div>
+                </div>
+              </div>
 
-            {!isPaid && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button style={{
-                    padding: "7px 18px", borderRadius: 10, border: "none", cursor: "pointer",
-                    background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
-                    color: "white", fontWeight: 600, fontSize: 13,
-                  }}>
-                    Đánh dấu đã thanh toán
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Đánh dấu hóa đơn {formatMoneyVND(bill.totalAmount)} là đã thanh toán?
-                      {attended < bill.sessionCount && (
-                        <span style={{ display: "block", marginTop: 8, color: "#E8780A" }}>
-                          Lưu ý: còn {bill.sessionCount - attended} buổi chưa điểm danh.
+              {/* Progress bar */}
+              <div style={{ height: 7, background: "#F4D8DE", borderRadius: 99, overflow: "hidden", marginBottom: isPaid ? 0 : 14 }}>
+                <div style={{
+                  height: "100%", width: `${pct}%`,
+                  background: "linear-gradient(90deg,#E8788A,#F0A0B0)",
+                  borderRadius: 99, transition: "width 600ms ease",
+                }} />
+              </div>
+
+              {/* Pay button */}
+              {!isPaid && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button style={{
+                      width: "100%", height: 44, border: "none", borderRadius: 12, cursor: "pointer",
+                      background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                      color: "white", fontWeight: 700, fontSize: 14,
+                    }}>
+                      Đánh dấu đã thanh toán
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Đánh dấu hóa đơn {formatMoneyVND(bill.totalAmount)} là đã thanh toán?
+                        {attended < bill.sessionCount && (
+                          <span style={{ display: "block", marginTop: 8, color: "#E8780A" }}>
+                            Lưu ý: còn {bill.sessionCount - attended} buổi chưa điểm danh.
+                          </span>
+                        )}
+                        <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
+                          Hành động này không thể hoàn tác.
                         </span>
-                      )}
-                      <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
-                        Hành động này không thể hoàn tác.
-                      </span>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Hủy</AlertDialogCancel>
-                    <AlertDialogAction onClick={markPaid} disabled={payLoading}>
-                      {payLoading ? "Đang xử lý..." : "Xác nhận"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
-        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                      <AlertDialogAction onClick={markPaid} disabled={payLoading}>
+                        {payLoading ? "Đang xử lý..." : "Xác nhận"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
 
-        {/* Progress card */}
-        <div style={{ ...cardStyle, padding: "20px 28px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: "#2C1820" }}>
-              {attended}/{bill.sessionCount} buổi đã học
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#E8788A" }}>{pct}%</span>
-          </div>
-          <div style={{ height: 8, background: "#F4D8DE", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{
-              height: "100%", width: `${pct}%`,
-              background: "linear-gradient(90deg,#E8788A,#F0A0B0)",
-              borderRadius: 99, transition: "width 600ms ease",
-            }} />
-          </div>
-        </div>
-
-        {/* Sessions table */}
-        <div style={{ ...cardStyle, padding: "20px 28px" }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#2C1820", margin: "0 0 16px" }}>
-            Danh sách buổi học
-          </h2>
-
-          {isMobile ? (
-            /* Mobile: card list per session */
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px 0" }}>
+            {/* Sessions list card */}
+            <div style={{ ...cardStyle, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #FDE8EC" }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: "#2C1820", margin: 0 }}>
+                  Danh sách buổi học
+                </h2>
+              </div>
               {sorted.map((s, i) => (
                 <div key={s.id} style={{
-                  background: s.isAttended ? "#FFF5F8" : "#FFF8FA",
-                  borderRadius: 10, padding: "12px 14px",
-                  border: "1px solid #F4D8DE",
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 20px",
+                  borderBottom: i < sorted.length - 1 ? "1px solid #FDE8EC" : "none",
+                  background: s.isAttended ? "rgba(232,120,138,0.04)" : "transparent",
                 }}>
-                  {/* Row 1: index + date + attended checkbox */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#A87888", fontWeight: 600, minWidth: 20 }}>{i + 1}.</span>
-                      {isPaid ? (
-                        <span style={{ ...badgeStyle, cursor: "default", fontSize: 12 }}>
-                          <Calendar size={11} color="#C4909A" />
-                          {fmtDate(s.scheduledDate)}
-                        </span>
-                      ) : (
-                        <DatePicker
-                          value={s.scheduledDate}
-                          onChange={(d) => saveSession(s.id, { scheduledDate: d })}
-                          trigger={
-                            <span style={{ ...badgeStyle, fontSize: 12 }}>
-                              <Calendar size={11} color="#C4909A" />
-                              {fmtDate(s.scheduledDate)}
-                            </span>
-                          }
-                        />
-                      )}
-                    </div>
-                    <Checkbox
-                      checked={s.isAttended}
-                      onCheckedChange={() => toggleAttended(s.id, s.isAttended)}
-                      disabled={isPaid}
-                    />
-                  </div>
+                  <span style={{ fontSize: 12, color: "#C4A0A8", fontWeight: 700, width: 18, flexShrink: 0, textAlign: "right" }}>{i + 1}</span>
 
-                  {/* Row 2: time */}
-                  <div style={{ marginBottom: 8 }}>
+                  {/* Date */}
+                  <div style={{ flex: 1 }}>
                     {isPaid ? (
-                      <span style={{ ...badgeStyle, cursor: "default", fontSize: 12 }}>
-                        <Clock size={11} color="#C4909A" />
-                        {s.startTime} – {s.endTime}
-                      </span>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>{fmtDate(s.scheduledDate)}</div>
+                    ) : (
+                      <DatePicker
+                        value={s.scheduledDate}
+                        onChange={(d) => saveSession(s.id, { scheduledDate: d })}
+                        trigger={
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820", cursor: "pointer", display: "inline" }}>
+                            {fmtDate(s.scheduledDate)}
+                          </div>
+                        }
+                      />
+                    )}
+                    {/* Time */}
+                    {isPaid ? (
+                      <div style={{ fontSize: 12, color: "#A87888", marginTop: 2 }}>{s.startTime} – {s.endTime}</div>
                     ) : (
                       <Popover
                         open={timeEdit?.id === s.id && timeEdit.open}
-                        onOpenChange={(o) => {
-                          if (!o && timeEdit?.id === s.id) setTimeEdit(null);
-                        }}
+                        onOpenChange={(o) => { if (!o && timeEdit?.id === s.id) setTimeEdit(null); }}
                       >
                         <PopoverTrigger asChild>
-                          <span
-                            style={{ ...badgeStyle, fontSize: 12 }}
+                          <div
+                            style={{ fontSize: 12, color: "#A87888", marginTop: 2, cursor: "pointer", display: "inline-block" }}
                             onClick={() => setTimeEdit({ id: s.id, start: s.startTime, end: s.endTime, open: true })}
                           >
-                            <Clock size={11} color="#C4909A" />
                             {s.startTime} – {s.endTime}
-                          </span>
+                          </div>
                         </PopoverTrigger>
                         <PopoverContent style={{
                           width: 280, padding: 20, borderRadius: 18,
@@ -349,30 +329,12 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                           <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>Chỉnh giờ học</p>
                           {timeEdit?.id === s.id && (
                             <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 16 }}>
-                              <TimeSpinner
-                                label="Bắt đầu"
-                                value={timeEdit.start}
-                                onChange={(v) => setTimeEdit({ ...timeEdit, start: v })}
-                              />
-                              <TimeSpinner
-                                label="Kết thúc"
-                                value={timeEdit.end}
-                                onChange={(v) => setTimeEdit({ ...timeEdit, end: v })}
-                              />
+                              <TimeSpinner label="Bắt đầu" value={timeEdit.start} onChange={(v) => setTimeEdit({ ...timeEdit, start: v })} />
+                              <TimeSpinner label="Kết thúc" value={timeEdit.end} onChange={(v) => setTimeEdit({ ...timeEdit, end: v })} />
                             </div>
                           )}
-                          <button
-                            onClick={async () => {
-                              if (!timeEdit) return;
-                              await saveSession(s.id, { startTime: timeEdit.start, endTime: timeEdit.end });
-                              setTimeEdit(null);
-                            }}
-                            style={{
-                              width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer",
-                              background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
-                              color: "white", fontWeight: 600, fontSize: 13,
-                            }}
-                          >
+                          <button onClick={async () => { if (!timeEdit) return; await saveSession(s.id, { startTime: timeEdit.start, endTime: timeEdit.end }); setTimeEdit(null); }}
+                            style={{ width: "100%", height: 36, border: "none", borderRadius: 10, cursor: "pointer", background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white", fontWeight: 600, fontSize: 13 }}>
                             Lưu
                           </button>
                         </PopoverContent>
@@ -380,44 +342,104 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                     )}
                   </div>
 
-                  {/* Row 3: notes */}
-                  {editingNotes?.id === s.id ? (
-                    <input
-                      ref={notesRef}
-                      value={editingNotes.value}
-                      onChange={(e) => setEditingNotes({ id: s.id, value: e.target.value })}
-                      onBlur={async () => {
-                        await saveSession(s.id, { notes: editingNotes.value });
-                        setEditingNotes(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        if (e.key === "Escape") setEditingNotes(null);
-                      }}
-                      style={{
-                        width: "100%", height: 32, padding: "0 8px",
-                        background: "#FFF8FA", border: "1px solid #ECC8D0",
-                        borderRadius: 8, fontSize: 13, color: "#2C1820", outline: "none",
-                      }}
-                    />
-                  ) : (
-                    <span
-                      onClick={() => !isPaid && setEditingNotes({ id: s.id, value: s.notes ?? "" })}
-                      style={{
-                        fontSize: 12, color: s.notes ? "#2C1820" : "#D4B0B8",
-                        cursor: isPaid ? "default" : "text",
-                        minHeight: 20, display: "block",
-                        padding: "2px 4px", borderRadius: 6,
-                      }}
-                      title={isPaid ? "" : "Click để chỉnh sửa"}
-                    >
-                      {s.notes || (isPaid ? "" : "Thêm ghi chú...")}
-                    </span>
-                  )}
+                  {/* Attendance toggle */}
+                  <Checkbox
+                    checked={s.isAttended}
+                    onCheckedChange={() => toggleAttended(s.id, s.isAttended)}
+                    disabled={isPaid}
+                  />
                 </div>
               ))}
             </div>
-          ) : (
+          </>
+        ) : (
+          /* ── Desktop layout ── */
+          <>
+            {/* Info card */}
+            <div style={{ ...cardStyle, padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: "48px" }}>
+                <div>
+                  <div style={labelStyle}>Học sinh</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{bill.student.name}</div>
+                </div>
+                <div>
+                  <div style={labelStyle}>Học phí</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(bill.totalAmount)}</div>
+                </div>
+                <div>
+                  <div style={labelStyle}>Tiến độ</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{attended}/{bill.sessionCount} buổi đã học</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{
+                  padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  background: isPaid ? "#D1FAE5" : "#FEF3C7",
+                  color: isPaid ? "#065F46" : "#92400E",
+                }}>
+                  {isPaid ? "Đã thanh toán" : "Chưa thanh toán"}
+                </span>
+                {!isPaid && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button style={{
+                        padding: "7px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+                        background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                        color: "white", fontWeight: 600, fontSize: 13,
+                      }}>
+                        Đánh dấu đã thanh toán
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Đánh dấu hóa đơn {formatMoneyVND(bill.totalAmount)} là đã thanh toán?
+                          {attended < bill.sessionCount && (
+                            <span style={{ display: "block", marginTop: 8, color: "#E8780A" }}>
+                              Lưu ý: còn {bill.sessionCount - attended} buổi chưa điểm danh.
+                            </span>
+                          )}
+                          <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
+                            Hành động này không thể hoàn tác.
+                          </span>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction onClick={markPaid} disabled={payLoading}>
+                          {payLoading ? "Đang xử lý..." : "Xác nhận"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </div>
+
+            {/* Progress card */}
+            <div style={{ ...cardStyle, padding: "20px 28px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: "#2C1820" }}>
+                  {attended}/{bill.sessionCount} buổi đã học
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#E8788A" }}>{pct}%</span>
+              </div>
+              <div style={{ height: 8, background: "#F4D8DE", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", width: `${pct}%`,
+                  background: "linear-gradient(90deg,#E8788A,#F0A0B0)",
+                  borderRadius: 99, transition: "width 600ms ease",
+                }} />
+              </div>
+            </div>
+
+            {/* Sessions table */}
+            <div style={{ ...cardStyle, padding: "20px 28px" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "#2C1820", margin: "0 0 16px" }}>
+                Danh sách buổi học
+              </h2>
+              {(
             <>
               {/* Table header */}
               <div style={{
@@ -574,6 +596,8 @@ export default function BillDetailClient({ billId }: { billId: number }) {
             </>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

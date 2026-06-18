@@ -626,19 +626,19 @@ function ScheduleCard({ student, addPicker, setAddPicker, removeSchedule, addSch
                 </div>
                 {daySchedules.map((s) => (
                   <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: "#A87888", fontFamily: "monospace" }}>
+                    <span style={{ fontSize: 13, color: "#A87888", fontFamily: "monospace" }}>
                       {s.startTime} – {s.endTime}
                     </span>
                     <button
                       onClick={() => removeSchedule(s.id)}
                       style={{
                         background: "#FECACA", border: "none", borderRadius: "50%",
-                        width: 18, height: 18, cursor: "pointer",
+                        width: 36, height: 36, cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
                         flexShrink: 0,
                       }}
                     >
-                      <X size={10} color="#EF4444" />
+                      <X size={14} color="#EF4444" />
                     </button>
                   </div>
                 ))}
