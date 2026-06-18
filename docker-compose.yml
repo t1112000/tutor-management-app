@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: tuyen
       POSTGRES_DB: tutor_app
     volumes:
       - pgdata:/var/lib/postgresql/data
