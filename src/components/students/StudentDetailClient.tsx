@@ -203,54 +203,89 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
       {/* ── Sticky header ── */}
-      <div style={{ ...hdrStyle, padding: isMobile ? "0 16px" : "0 32px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Link
-            href="/students"
-            style={{
-              display: "flex", alignItems: "center", gap: 4,
-              background: "#FFF0F3", border: "1px solid #F4D8DE",
-              borderRadius: 8, padding: "5px 12px",
-              color: "#A87888", fontSize: 13, textDecoration: "none", fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            <ChevronLeft size={14} /> Học sinh
-          </Link>
-          <span style={{ color: "#E0C0C8", fontSize: 16 }}>/</span>
-          <span style={{ fontWeight: 700, color: "#2C1820", fontSize: 15 }}>{student.name}</span>
+      {isMobile ? (
+        // Mobile: two-row layout so long names don't fight with the button
+        <div style={{
+          ...hdrStyle, height: "auto", padding: "10px 16px",
+          flexDirection: "column", alignItems: "flex-start", gap: 6,
+        }}>
+          <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+            <Link
+              href="/students"
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                background: "#FFF0F3", border: "1px solid #F4D8DE",
+                borderRadius: 8, padding: "5px 12px",
+                color: "#A87888", fontSize: 13, textDecoration: "none", fontWeight: 500,
+              }}
+            >
+              <ChevronLeft size={14} /> Học sinh
+            </Link>
+            <Link href={`/students/${studentId}/bills/new`}>
+              <button style={{
+                background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white",
+                border: "none", borderRadius: 10, padding: "7px 14px",
+                fontWeight: 600, fontSize: 13, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 5,
+              }}>
+                <Plus size={14} /> Tạo hóa đơn mới
+              </button>
+            </Link>
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820", paddingLeft: 2, lineHeight: 1.3 }}>
+            {student.name}
+          </div>
         </div>
-        <Link href={`/students/${studentId}/bills/new`}>
-          <button style={{
-            background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white",
-            border: "none", borderRadius: 10, padding: "7px 16px",
-            fontWeight: 600, fontSize: 13, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6,
-          }}>
-            <Plus size={14} /> Tạo hóa đơn mới
-          </button>
-        </Link>
-      </div>
+      ) : (
+        <div style={{ ...hdrStyle, padding: "0 32px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Link
+              href="/students"
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                background: "#FFF0F3", border: "1px solid #F4D8DE",
+                borderRadius: 8, padding: "5px 12px",
+                color: "#A87888", fontSize: 13, textDecoration: "none", fontWeight: 500,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <ChevronLeft size={14} /> Học sinh
+            </Link>
+            <span style={{ color: "#E0C0C8", fontSize: 16 }}>/</span>
+            <span style={{ fontWeight: 700, color: "#2C1820", fontSize: 15 }}>{student.name}</span>
+          </div>
+          <Link href={`/students/${studentId}/bills/new`}>
+            <button style={{
+              background: "linear-gradient(135deg,#E8788A,#F0A0B0)", color: "white",
+              border: "none", borderRadius: 10, padding: "7px 16px",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <Plus size={14} /> Tạo hóa đơn mới
+            </button>
+          </Link>
+        </div>
+      )}
 
       {/* ── Scrollable content ── */}
       <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "16px" : "24px 32px" }}>
 
         {/* ── Info card ── */}
         <div style={{ background: "white", borderRadius: 16, border: "1px solid #F4D8DE", padding: 24, marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: 0 }}>Thông tin học sinh</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 8 }}>
+            <h2 style={{ fontWeight: 700, fontSize: 16, color: "#2C1820", margin: 0, flexShrink: 0 }}>Thông tin học sinh</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {!isEditing && (
                 <button
                   onClick={startEdit}
-                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#A87888", background: "#FFF0F3", border: "1px solid #F4D8DE", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontWeight: 500 }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#A87888", background: "#FFF0F3", border: "1px solid #F4D8DE", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap" }}
                 >
                   <Pencil size={13} /> Chỉnh sửa
                 </button>
               )}
               <button
                 onClick={deleteStudent}
-                style={{ fontSize: 12, color: "#F07888", background: "none", border: "none", cursor: "pointer" }}
+                style={{ fontSize: 12, color: "#F07888", background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
               >
                 Xóa học sinh
               </button>
@@ -337,18 +372,18 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
             </div>
           ) : (
             /* ── View mode ── */
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 40px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "16px" : "20px 40px" }}>
               <div>
                 <span style={labelStyle}>Họ và tên</span>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "#2C1820" }}>{student.name || "—"}</div>
               </div>
               <div>
                 <span style={labelStyle}>Môn học</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{
                     display: "inline-block", fontSize: 13, fontWeight: 500,
                     background: "#EBF5FF", color: "#3B82F6",
-                    padding: "3px 12px", borderRadius: 20,
+                    padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap",
                   }}>
                     {student.subject === "english" ? "Tiếng Anh" : "Tiếng Trung"}
                   </span>
@@ -356,7 +391,7 @@ export default function StudentDetailClient({ studentId }: { studentId: number }
                     display: "inline-block", fontSize: 13, fontWeight: 500,
                     background: student.type === "online" ? "#E8F5E9" : "#FFF3E0",
                     color: student.type === "online" ? "#2E7D32" : "#E65100",
-                    padding: "3px 12px", borderRadius: 20,
+                    padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap",
                   }}>
                     {student.type === "online" ? "Online" : "Offline"}
                   </span>

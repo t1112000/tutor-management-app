@@ -25,14 +25,19 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, style, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      style={{
+        // Add safe-area on top of p-6's 1.5rem — inline style wins over class order conflicts
+        paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+        ...style,
+      }}
       className={cn(
         // Mobile: bottom sheet
-        "fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl bg-background pb-safe max-h-[90dvh] overflow-y-auto",
+        "fixed inset-x-0 bottom-0 z-50 w-full rounded-t-2xl bg-background max-h-[90dvh] overflow-y-auto",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
         "data-[state=open]:duration-300 data-[state=closed]:duration-200",
