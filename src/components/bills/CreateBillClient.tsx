@@ -425,10 +425,106 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                   ? "Học sinh chưa có lịch học"
                   : "Nhập số buổi và ngày bắt đầu để tạo tự động"}
               </p>
-            ) : (
+            ) : isMobile ? (
+              /* ── Mobile: card list per session ── */
               <>
-                {/* Table full-width, padding on cells */}
-                <div style={{ overflowX: isMobile ? "auto" : undefined }}>
+                {sessions.map((s, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      borderBottom: "1px solid #FDE8EC",
+                      padding: isEditing ? "12px 20px" : "0",
+                    }}
+                  >
+                    {isEditing ? (
+                      /* Edit card */
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#E8788A", letterSpacing: "0.04em" }}>
+                            BUỔI {i + 1}
+                          </span>
+                          <button
+                            onClick={() => removeSession(i)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#F4A0B0", padding: 4 }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                        <DatePicker
+                          value={s.scheduledDate}
+                          onChange={(v) => updateSession(i, "scheduledDate", v)}
+                          placeholder="Chọn ngày"
+                          style={{ width: "100%", height: 42, marginBottom: 8 }}
+                        />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <TimePicker
+                            label="Bắt đầu"
+                            value={s.startTime}
+                            onChange={(v) => updateSession(i, "startTime", v)}
+                            onConfirm={() => setOpenPicker(null)}
+                            open={openPicker === `${i}-start`}
+                            onOpenChange={(o) => setOpenPicker(o ? `${i}-start` : null)}
+                          >
+                            <button type="button" style={{
+                              flex: 1, height: 42, padding: "0 12px",
+                              background: "#FFF8FA", border: "1px solid #ECC8D0",
+                              borderRadius: 10, fontSize: 13, color: "#2C1820",
+                              cursor: "pointer", textAlign: "center",
+                            }}>
+                              {s.startTime}
+                            </button>
+                          </TimePicker>
+                          <span style={{ display: "flex", alignItems: "center", color: "#C4A0A8", fontSize: 14, flexShrink: 0 }}>→</span>
+                          <TimePicker
+                            label="Kết thúc"
+                            value={s.endTime}
+                            onChange={(v) => updateSession(i, "endTime", v)}
+                            onConfirm={() => setOpenPicker(null)}
+                            open={openPicker === `${i}-end`}
+                            onOpenChange={(o) => setOpenPicker(o ? `${i}-end` : null)}
+                          >
+                            <button type="button" style={{
+                              flex: 1, height: 42, padding: "0 12px",
+                              background: "#FFF8FA", border: "1px solid #ECC8D0",
+                              borderRadius: 10, fontSize: 13, color: "#2C1820",
+                              cursor: "pointer", textAlign: "center",
+                            }}>
+                              {s.endTime}
+                            </button>
+                          </TimePicker>
+                        </div>
+                      </>
+                    ) : (
+                      /* View row */
+                      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#E8788A", width: 20, flexShrink: 0 }}>{i + 1}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>{formatDateVN(s.scheduledDate)}</div>
+                          <div style={{ fontSize: 12, color: "#A87888", marginTop: 2 }}>{s.startTime} – {s.endTime}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {isEditing && (
+                  <button
+                    onClick={addSession}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      margin: "12px 20px", padding: "10px 14px",
+                      background: "#FFF0F3", border: "1px dashed #F4D8DE",
+                      borderRadius: 10, color: "#E8788A", fontSize: 13,
+                      fontWeight: 600, cursor: "pointer",
+                      width: "calc(100% - 40px)", justifyContent: "center",
+                    }}
+                  >
+                    <Plus size={14} /> Thêm buổi
+                  </button>
+                )}
+              </>
+            ) : (
+              /* ── Desktop: table ── */
+              <>
                 <table
                   style={{
                     width: "100%",
@@ -438,232 +534,57 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
                 >
                   <thead>
                     <tr style={{ background: "#FFF0F3" }}>
-                      <th
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 0 12px 24px",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#E8788A",
-                          letterSpacing: "0.06em",
-                          width: 48,
-                        }}
-                      >
-                        #
-                      </th>
-                      <th
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 0",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#E8788A",
-                          letterSpacing: "0.06em",
-                        }}
-                      >
-                        NGÀY
-                      </th>
-                      <th
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 0",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#E8788A",
-                          letterSpacing: "0.06em",
-                        }}
-                      >
-                        BẮT ĐẦU
-                      </th>
-                      <th
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 24px 12px 0",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#E8788A",
-                          letterSpacing: "0.06em",
-                        }}
-                      >
-                        KẾT THÚC
-                      </th>
-                      {isEditing && (
-                        <th
-                          style={{ width: 48, padding: "12px 24px 12px 0" }}
-                        />
-                      )}
+                      <th style={{ textAlign: "left", padding: "12px 0 12px 24px", fontSize: 11, fontWeight: 700, color: "#E8788A", letterSpacing: "0.06em", width: 48 }}>#</th>
+                      <th style={{ textAlign: "left", padding: "12px 0", fontSize: 11, fontWeight: 700, color: "#E8788A", letterSpacing: "0.06em" }}>NGÀY</th>
+                      <th style={{ textAlign: "left", padding: "12px 0", fontSize: 11, fontWeight: 700, color: "#E8788A", letterSpacing: "0.06em" }}>BẮT ĐẦU</th>
+                      <th style={{ textAlign: "left", padding: "12px 24px 12px 0", fontSize: 11, fontWeight: 700, color: "#E8788A", letterSpacing: "0.06em" }}>KẾT THÚC</th>
+                      {isEditing && <th style={{ width: 48, padding: "12px 24px 12px 0" }} />}
                     </tr>
                   </thead>
                   <tbody>
                     {sessions.map((s, i) => (
-                      <tr
-                        key={i}
-                        style={{
-                          background: "white",
-                          borderBottom: "1px solid #FDE8EC",
-                        }}
-                      >
-                        <td
-                          style={{
-                            padding: "16px 0 16px 24px",
-                            color: "#E8788A",
-                            fontWeight: 700,
-                            fontSize: 13,
-                          }}
-                        >
-                          {i + 1}
-                        </td>
+                      <tr key={i} style={{ background: "white", borderBottom: "1px solid #FDE8EC" }}>
+                        <td style={{ padding: "16px 0 16px 24px", color: "#E8788A", fontWeight: 700, fontSize: 13 }}>{i + 1}</td>
                         {isEditing ? (
                           <>
                             <td style={{ padding: "8px 16px 8px 0" }}>
-                              <DatePicker
-                                value={s.scheduledDate}
-                                onChange={(v) =>
-                                  updateSession(i, "scheduledDate", v)
-                                }
-                                placeholder="Chọn ngày"
-                                style={{ height: 44, fontSize: 13, width: isMobile ? "100%" : undefined }}
-                              />
+                              <DatePicker value={s.scheduledDate} onChange={(v) => updateSession(i, "scheduledDate", v)} placeholder="Chọn ngày" style={{ height: 44, fontSize: 13 }} />
                             </td>
                             <td style={{ padding: "8px 16px 8px 0" }}>
-                              <TimePicker
-                                label="Bắt đầu"
-                                value={s.startTime}
-                                onChange={(v) =>
-                                  updateSession(i, "startTime", v)
-                                }
-                                onConfirm={() => setOpenPicker(null)}
-                                open={openPicker === `${i}-start`}
-                                onOpenChange={(o) =>
-                                  setOpenPicker(o ? `${i}-start` : null)
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  style={{
-                                    height: 44,
-                                    padding: "0 12px",
-                                    minWidth: 80,
-                                    width: isMobile ? "100%" : undefined,
-                                    background: "#FFF8FA",
-                                    border: "1px solid #ECC8D0",
-                                    borderRadius: 10,
-                                    fontSize: 13,
-                                    color: "#2C1820",
-                                    cursor: "pointer",
-                                    textAlign: "left",
-                                  }}
-                                >
-                                  {s.startTime}
-                                </button>
+                              <TimePicker label="Bắt đầu" value={s.startTime} onChange={(v) => updateSession(i, "startTime", v)} onConfirm={() => setOpenPicker(null)} open={openPicker === `${i}-start`} onOpenChange={(o) => setOpenPicker(o ? `${i}-start` : null)}>
+                                <button type="button" style={{ height: 44, padding: "0 12px", minWidth: 80, background: "#FFF8FA", border: "1px solid #ECC8D0", borderRadius: 10, fontSize: 13, color: "#2C1820", cursor: "pointer", textAlign: "left" }}>{s.startTime}</button>
                               </TimePicker>
                             </td>
                             <td style={{ padding: "8px 24px 8px 0" }}>
-                              <TimePicker
-                                label="Kết thúc"
-                                value={s.endTime}
-                                onChange={(v) => updateSession(i, "endTime", v)}
-                                onConfirm={() => setOpenPicker(null)}
-                                open={openPicker === `${i}-end`}
-                                onOpenChange={(o) =>
-                                  setOpenPicker(o ? `${i}-end` : null)
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  style={{
-                                    height: 44,
-                                    padding: "0 12px",
-                                    minWidth: 80,
-                                    width: isMobile ? "100%" : undefined,
-                                    background: "#FFF8FA",
-                                    border: "1px solid #ECC8D0",
-                                    borderRadius: 10,
-                                    fontSize: 13,
-                                    color: "#2C1820",
-                                    cursor: "pointer",
-                                    textAlign: "left",
-                                  }}
-                                >
-                                  {s.endTime}
-                                </button>
+                              <TimePicker label="Kết thúc" value={s.endTime} onChange={(v) => updateSession(i, "endTime", v)} onConfirm={() => setOpenPicker(null)} open={openPicker === `${i}-end`} onOpenChange={(o) => setOpenPicker(o ? `${i}-end` : null)}>
+                                <button type="button" style={{ height: 44, padding: "0 12px", minWidth: 80, background: "#FFF8FA", border: "1px solid #ECC8D0", borderRadius: 10, fontSize: 13, color: "#2C1820", cursor: "pointer", textAlign: "left" }}>{s.endTime}</button>
                               </TimePicker>
                             </td>
-                            <td
-                              style={{
-                                padding: "8px 24px 8px 0",
-                                textAlign: "center",
-                              }}
-                            >
-                              <button
-                                onClick={() => removeSession(i)}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  color: "#F4A0B0",
-                                  padding: 4,
-                                }}
-                              >
-                                <Trash2 size={15} />
-                              </button>
+                            <td style={{ padding: "8px 24px 8px 0", textAlign: "center" }}>
+                              <button onClick={() => removeSession(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#F4A0B0", padding: 4 }}><Trash2 size={15} /></button>
                             </td>
                           </>
                         ) : (
                           <>
-                            <td
-                              style={{
-                                padding: "16px 16px 16px 0",
-                                color: "#2C1820",
-                                fontSize: 14,
-                              }}
-                            >
-                              {formatDateVN(s.scheduledDate)}
-                            </td>
-                            <td
-                              style={{
-                                padding: "16px 16px 16px 0",
-                                color: "#2C1820",
-                                fontSize: 14,
-                              }}
-                            >
-                              {s.startTime}
-                            </td>
-                            <td
-                              style={{
-                                padding: "16px 24px 16px 0",
-                                color: "#2C1820",
-                                fontSize: 14,
-                              }}
-                            >
-                              {s.endTime}
-                            </td>
+                            <td style={{ padding: "16px 16px 16px 0", color: "#2C1820", fontSize: 14 }}>{formatDateVN(s.scheduledDate)}</td>
+                            <td style={{ padding: "16px 16px 16px 0", color: "#2C1820", fontSize: 14 }}>{s.startTime}</td>
+                            <td style={{ padding: "16px 24px 16px 0", color: "#2C1820", fontSize: 14 }}>{s.endTime}</td>
                           </>
                         )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                </div>
-
                 {isEditing && (
                   <button
                     onClick={addSession}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      margin: "12px 24px",
-                      padding: "8px 14px",
-                      background: "#FFF0F3",
-                      border: "1px dashed #F4D8DE",
-                      borderRadius: 10,
-                      color: "#E8788A",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      width: "calc(100% - 48px)",
-                      justifyContent: "center",
+                      display: "flex", alignItems: "center", gap: 6,
+                      margin: "12px 24px", padding: "8px 14px",
+                      background: "#FFF0F3", border: "1px dashed #F4D8DE",
+                      borderRadius: 10, color: "#E8788A", fontSize: 13,
+                      fontWeight: 600, cursor: "pointer",
+                      width: "calc(100% - 48px)", justifyContent: "center",
                     }}
                   >
                     <Plus size={14} /> Thêm buổi
