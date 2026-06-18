@@ -1,24 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SubjectBadge } from "@/components/ui/subject-badge";
 import { formatMoneyVND, VN_DAY_NAMES } from "@/lib/time";
 import useIsMobile from "@/hooks/use-is-mobile";
-
-interface Stats {
-  activeStudents: number;
-  unpaidBills: number;
-  unpaidTotal: number;
-  todaySessions: Array<{
-    id: number;
-    startTime: string;
-    endTime: string;
-    scheduledDate: string;
-    bill: { id: number; student: { name: string; subject: "english" | "chinese" } };
-  }>;
-  weekSessionCount: number;
-}
+import { useStudents } from "@/hooks/queries/use-students";
+import { useReport } from "@/hooks/queries/use-report";
+import { useCalendar } from "@/hooks/queries/use-calendar";
 
 function getTodayLabel() {
   const d = new Date();
@@ -41,40 +29,28 @@ const cardStyle: React.CSSProperties = {
 
 export default function DashboardContent({ userId }: { userId: number }) {
   const isMobile = useIsMobile();
-  const [stats, setStats] = useState<Stats | null>(null);
 
   const hdrStyle: React.CSSProperties = {
     height: "64px", padding: isMobile ? "0 16px" : "0 32px", display: "flex", alignItems: "center",
     borderBottom: "1px solid #F4D8DE", background: "rgba(255,255,255,0.92)",
     backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
   };
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [studentsRes, reportRes, calendarRes] = await Promise.all([
-          fetch("/api/students"),
-          fetch(`/api/report?month=${new Date().toISOString().slice(0, 7)}`),
-          fetch(`/api/calendar?weekStart=${getWeekStart()}`),
-        ]);
-        const students = await studentsRes.json();
-        const report = await reportRes.json();
-        const calendarSessions = await calendarRes.json();
-        const today = new Date().toISOString().slice(0, 10);
-        setStats({
-          activeStudents: students.length,
-          unpaidBills: report.unpaidBillCount ?? 0,
-          unpaidTotal: report.unpaid,
-          todaySessions: calendarSessions.filter((s: any) => s.scheduledDate === today),
-          weekSessionCount: calendarSessions.length,
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const weekStart = getWeekStart();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: students, isLoading: l1 } = useStudents();
+  const { data: report,   isLoading: l2 } = useReport(currentMonth);
+  const { data: sessions, isLoading: l3 } = useCalendar(weekStart);
+
+  const loading = l1 || l2 || l3;
+
+  const activeStudents  = students?.length ?? 0;
+  const unpaidBills     = report?.unpaidBillCount ?? 0;
+  const unpaidTotal     = report?.unpaid ?? 0;
+  const todaySessions   = (sessions ?? []).filter((s) => s.scheduledDate === today);
+  const weekSessionCount = sessions?.length ?? 0;
 
   function getWeekStart() {
     const d = new Date();
@@ -110,7 +86,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
               </div>
               <span style={{ fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.5px" }}>Học sinh đang học</span>
             </div>
-            <div style={{ fontSize: "38px", fontWeight: 700, color: "#C45870", letterSpacing: "-1.5px", lineHeight: 1 }}>{loading ? "—" : stats?.activeStudents}</div>
+            <div style={{ fontSize: "38px", fontWeight: 700, color: "#C45870", letterSpacing: "-1.5px", lineHeight: 1 }}>{loading ? "—" : activeStudents}</div>
             <div style={{ fontSize: "12px", color: "#A87888", marginTop: "5px" }}>học sinh hoạt động</div>
           </div>
           {/* Bills */}
@@ -121,7 +97,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
               </div>
               <span style={{ fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.5px" }}>Hóa đơn chưa thu</span>
             </div>
-            <div style={{ fontSize: "38px", fontWeight: 700, color: "#b45309", letterSpacing: "-1.5px", lineHeight: 1 }}>{loading ? "—" : stats?.unpaidBills}</div>
+            <div style={{ fontSize: "38px", fontWeight: 700, color: "#b45309", letterSpacing: "-1.5px", lineHeight: 1 }}>{loading ? "—" : unpaidBills}</div>
             <div style={{ fontSize: "12px", color: "#A87888", marginTop: "5px" }}>hóa đơn chưa thanh toán</div>
           </div>
           {/* Money */}
@@ -132,7 +108,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
               </div>
               <span style={{ fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng chưa thu</span>
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 700, color: "#1a8a3c", letterSpacing: "-0.8px", lineHeight: 1 }}>{loading ? "—" : formatMoneyVND(stats?.unpaidTotal ?? 0)}</div>
+            <div style={{ fontSize: "28px", fontWeight: 700, color: "#1a8a3c", letterSpacing: "-0.8px", lineHeight: 1 }}>{loading ? "—" : formatMoneyVND(unpaidTotal)}</div>
             <div style={{ fontSize: "12px", color: "#A87888", marginTop: "5px" }}>tổng tiền còn lại</div>
           </div>
         </div>
@@ -147,9 +123,9 @@ export default function DashboardContent({ userId }: { userId: number }) {
             </div>
             {loading ? (
               <div style={{ padding: "20px", fontSize: "13px", color: "#A87888" }}>Đang tải...</div>
-            ) : !stats?.todaySessions.length ? (
+            ) : !todaySessions.length ? (
               <div style={{ padding: "20px", fontSize: "13px", color: "#A87888" }}>Không có buổi dạy hôm nay</div>
-            ) : stats.todaySessions.map((s) => (
+            ) : todaySessions.map((s) => (
               <div key={s.id} style={{ padding: "13px 20px", borderBottom: "1px solid #F4D8DE", display: "flex", alignItems: "center", gap: "14px" }}>
                 <div style={{ width: "68px", flexShrink: 0 }}>
                   <div style={{ fontSize: "13px", fontWeight: 600, color: "#2C1820", fontFamily: "monospace" }}>{s.startTime}</div>
@@ -172,7 +148,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820" }}>Danh sách học sinh</div>
-                <div style={{ fontSize: "11px", color: "#A87888" }}>Quản lý {loading ? "..." : stats?.activeStudents} học sinh</div>
+                <div style={{ fontSize: "11px", color: "#A87888" }}>Quản lý {loading ? "..." : activeStudents} học sinh</div>
               </div>
               {chevron}
             </Link>
@@ -182,7 +158,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820" }}>Lịch dạy tuần này</div>
-                <div style={{ fontSize: "11px", color: "#A87888" }}>{loading ? "..." : stats?.weekSessionCount} buổi học tuần này</div>
+                <div style={{ fontSize: "11px", color: "#A87888" }}>{loading ? "..." : weekSessionCount} buổi học tuần này</div>
               </div>
               {chevron}
             </Link>
