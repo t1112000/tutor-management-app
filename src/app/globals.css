@@ -35,6 +35,11 @@
     @apply text-foreground;
     background: url("/bg-main.png") center / cover fixed no-repeat;
   }
+  @media (max-width: 767px) {
+    body {
+      background: url("/bg-mobile.png") center / cover fixed no-repeat;
+    }
+  }
 }
 
 @layer utilities {
