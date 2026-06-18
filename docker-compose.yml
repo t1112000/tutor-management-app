@@ -24,9 +24,9 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://postgres:password@db:5432/tutor_app
+      DATABASE_URL: postgresql://postgres:tuyen@db:5432/tutor_app
     ports:
-      - "3000:3000"
+      - "3001:3000"
 
 volumes:
   pgdata:
