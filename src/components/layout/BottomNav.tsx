@@ -8,47 +8,60 @@ import { navItems } from "./nav-items";
 export default function BottomNav() {
   const pathname = usePathname();
 
+  const activeIndex = navItems.findIndex(({ href }) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href)
+  );
+
+  const count = navItems.length;
+
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.06)] pb-safe"
-      style={{ height: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))" }}
+      className="fixed bottom-0 inset-x-0 z-50 md:hidden pointer-events-none"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex h-[64px]">
-        {navItems.map(({ href, icon: Icon, label }) => {
-          const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+      <div className="mx-4 mb-3 pointer-events-auto">
+        <div className="relative flex h-16 items-center rounded-full bg-white/95 backdrop-blur-sm border border-white shadow-[0_8px_32px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] px-1.5">
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-label={label}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5",
-                "transition-transform duration-150 ease-out active:scale-[0.92]",
-                isActive ? "text-primary" : "text-gray-500"
-              )}
-            >
-              <div
-                className={cn(
-                  "relative flex items-center justify-center rounded-full px-3 py-1.5 transition-all duration-200",
-                  isActive
-                    ? "bg-primary/10 shadow-sm -translate-y-0.5"
-                    : "active:bg-gray-100 active:shadow-inner"
-                )}
+          {/* Sliding full-slot highlight */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-[5px] rounded-full bg-primary/10 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            style={{
+              left: "6px",
+              width: `calc((100% - 12px) / ${count})`,
+              transform: `translateX(calc(${activeIndex} * 100%))`,
+            }}
+          />
+
+          {navItems.map(({ href, icon: Icon, label }, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-label={label}
+                className="relative z-10 flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5"
               >
-                <Icon size={22} className={isActive ? "drop-shadow-sm" : ""} />
-              </div>
-              <span
-                className={cn(
-                  "text-[10px] leading-none",
-                  isActive ? "font-semibold" : "font-normal"
-                )}
-              >
-                {label}
-              </span>
-            </Link>
-          );
-        })}
+                <div
+                  className={cn(
+                    "transition-colors duration-200",
+                    isActive ? "text-primary" : "text-gray-400"
+                  )}
+                >
+                  <Icon size={21} strokeWidth={isActive ? 2 : 1.7} />
+                </div>
+                <span
+                  className={cn(
+                    "w-full truncate text-center text-[10px] leading-none transition-all duration-200",
+                    isActive ? "font-semibold text-primary" : "font-normal text-gray-400"
+                  )}
+                >
+                  {label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

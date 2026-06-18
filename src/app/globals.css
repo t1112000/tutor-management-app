@@ -31,13 +31,16 @@
   * {
     @apply border-border;
   }
+  html, body {
+    overscroll-behavior: none;
+  }
   body {
     @apply text-foreground;
     background: url("/bg-main.png") center / cover fixed no-repeat;
   }
   @media (max-width: 767px) {
     body {
-      background: url("/bg-mobile.png") center / cover fixed no-repeat;
+      background: url("/bg-mobile.png") center / cover no-repeat;
     }
   }
 }
@@ -58,5 +61,6 @@
 }
 
 :root {
-  --bottom-nav-h: 64px;
+  --bottom-nav-h: 76px;
 }
+
