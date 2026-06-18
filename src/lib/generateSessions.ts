@@ -29,7 +29,7 @@ export function generateSessions(
 
   for (let guard = 0; results.length < sessionCount && guard < maxDays; guard++) {
     const dow = current.getDay();
-    const isoDate = current.toISOString().slice(0, 10);
+    const isoDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}-${String(current.getDate()).padStart(2, "0")}`;
     for (const slot of sorted.filter((s) => s.dayOfWeek === dow)) {
       if (results.length >= sessionCount) break;
       results.push({ scheduledDate: isoDate, startTime: slot.startTime, endTime: slot.endTime });
