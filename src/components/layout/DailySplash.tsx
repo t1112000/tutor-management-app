@@ -52,11 +52,12 @@ export default function DailySplash() {
     const chars = [...messageRef.current];
     let i = 0;
     let ticker: ReturnType<typeof setTimeout>;
+    let buttonTimer: ReturnType<typeof setTimeout>;
 
     const startTimeout = setTimeout(() => {
       const tick = () => {
         if (i >= chars.length) {
-          setTimeout(() => setButtonVisible(true), 300);
+          buttonTimer = setTimeout(() => setButtonVisible(true), 300);
           return;
         }
         setTyped(chars.slice(0, i + 1).join(""));
@@ -69,6 +70,7 @@ export default function DailySplash() {
     return () => {
       clearTimeout(startTimeout);
       clearTimeout(ticker);
+      clearTimeout(buttonTimer);
     };
   }, [show]);
 
@@ -94,7 +96,7 @@ export default function DailySplash() {
     const onOrientation = (e: DeviceOrientationEvent) => {
       const card = cardRef.current;
       if (!card || e.beta === null || e.gamma === null) return;
-      if (card.style.animationName !== "none") {
+      if (card.style.animation !== "none") {
         card.style.animation = "none";
       }
       const rx = Math.max(-12, Math.min(12, (e.beta - 45) / 4));
@@ -250,7 +252,7 @@ export default function DailySplash() {
           to   { opacity: 1; transform: scale(1); }
         }
         @keyframes splashExit {
-          from { opacity: 1; }
+          from { opacity: 1; transform: scale(1); }
           to   { opacity: 0; transform: scale(1.03); }
         }
         @keyframes floatUp {
