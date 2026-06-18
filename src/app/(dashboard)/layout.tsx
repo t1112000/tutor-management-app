@@ -2,6 +2,7 @@ import { auth } from "../../../auth";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import BottomNav from "@/components/layout/BottomNav";
+import DailySplash from "@/components/layout/DailySplash";
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-[100dvh]">
+      <DailySplash />
       <Sidebar user={session.user} />
       <main className="flex-1 overflow-hidden pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] md:pb-0">
         {children}
