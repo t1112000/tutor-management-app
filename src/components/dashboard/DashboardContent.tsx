@@ -27,6 +27,12 @@ const cardStyle: React.CSSProperties = {
   background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "20px 22px",
 };
 
+function getWeekStart() {
+  const d = new Date();
+  const diff = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
+  return new Date(new Date(d).setDate(diff)).toISOString().slice(0, 10);
+}
+
 export default function DashboardContent({ userId }: { userId: number }) {
   const isMobile = useIsMobile();
 
@@ -51,12 +57,6 @@ export default function DashboardContent({ userId }: { userId: number }) {
   const unpaidTotal     = report?.unpaid ?? 0;
   const todaySessions   = (sessions ?? []).filter((s) => s.scheduledDate === today);
   const weekSessionCount = sessions?.length ?? 0;
-
-  function getWeekStart() {
-    const d = new Date();
-    const diff = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
-    return new Date(new Date(d).setDate(diff)).toISOString().slice(0, 10);
-  }
 
   const chevron = (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9098a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>

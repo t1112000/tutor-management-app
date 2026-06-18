@@ -70,6 +70,7 @@ export function usePayBill(billId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: ['report'], exact: false })
+      qc.invalidateQueries({ queryKey: keys.students.all() })
     },
   })
 }
