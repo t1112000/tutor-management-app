@@ -1,27 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SubjectBadge } from "@/components/ui/subject-badge";
 import { formatMoneyVND } from "@/lib/time";
 import useIsMobile from "@/hooks/use-is-mobile";
-
-interface StudentReport {
-  studentId: number;
-  name: string;
-  subject: "english" | "chinese";
-  paid: number;
-  unpaid: number;
-  total: number;
-  sessionsCount: number;
-}
-
-interface Report {
-  month: string;
-  paid: number;
-  unpaid: number;
-  total: number;
-  students: StudentReport[];
-}
+import { useReport } from "@/hooks/queries/use-report";
 
 export default function ReportClient() {
   const isMobile = useIsMobile();
@@ -29,16 +12,7 @@ export default function ReportClient() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [report, setReport] = useState<Report | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/report?month=${month}`)
-      .then((r) => r.json())
-      .then(setReport)
-      .finally(() => setLoading(false));
-  }, [month]);
+  const { data: report, isLoading: loading } = useReport(month);
 
   function changeMonth(delta: number) {
     const [y, m] = month.split("-").map(Number);
