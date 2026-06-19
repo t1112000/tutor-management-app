@@ -123,6 +123,7 @@ export function useAddSession(billId: number, studentId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
+      qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
     },
   })
 }
