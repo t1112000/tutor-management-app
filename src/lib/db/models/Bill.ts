@@ -20,6 +20,7 @@ export class Bill extends Model<
   declare createdBy: ForeignKey<User["id"]>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: Date | null;
   declare student?: NonAttribute<Student>;
   declare creator?: NonAttribute<User>;
 }
@@ -42,6 +43,7 @@ export function initBill(sequelize: Sequelize) {
       createdBy: { type: DataTypes.INTEGER, allowNull: false },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
+      deletedAt: { type: DataTypes.DATE, allowNull: true },
     },
     { sequelize, tableName: "bills" }
   );
