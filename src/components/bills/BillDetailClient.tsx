@@ -115,9 +115,12 @@ export default function BillDetailClient({ billId }: { billId: number }) {
     endTime: "08:00",
   });
   const { mutate: deleteBillMutation, isPending: deleteLoading } = useDeleteBill(billId, bill?.student?.id ?? 0);
-  const { mutate: updateBillMutation, isPending: saveLoading } = useUpdateBill(billId);
-  const { mutate: addSessionMutation, isPending: addingSession } = useAddSession(billId);
-  const { mutate: deleteSessionMutation } = useDeleteSession(billId);
+  const { mutate: updateBillMutation, isPending: saveLoading } = useUpdateBill(billId, bill?.student?.id ?? 0);
+  const { mutate: addSessionMutation, isPending: addingSession } = useAddSession(billId, bill?.student?.id ?? 0);
+  const { mutate: deleteSessionMutation } = useDeleteSession(billId, bill?.student?.id ?? 0);
+
+  const isPaid = bill?.status === "paid";
+  useEffect(() => { if (isPaid) setIsEditing(false); }, [isPaid]);
 
   useEffect(() => {
     if (editingNotes) notesRef.current?.focus();
@@ -203,8 +206,6 @@ export default function BillDetailClient({ billId }: { billId: number }) {
   const sorted = [...bill.sessions].sort((a, b) =>
     a.scheduledDate.localeCompare(b.scheduledDate) || a.startTime.localeCompare(b.startTime)
   );
-  const isPaid = bill.status === "paid";
-  useEffect(() => { if (isPaid) setIsEditing(false); }, [isPaid]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>

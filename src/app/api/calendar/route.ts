@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
       {
         model: Bill,
         as: "bill",
+        where: { deletedAt: null },
+        required: false,
         include: [{ model: Student, as: "student" }],
       },
     ],

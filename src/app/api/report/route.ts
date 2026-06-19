@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const monthEnd = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
 
   const bills = await Bill.findAll({
-    where: {},
+    where: { deletedAt: null },
     include: [
       { model: Student, as: "student" },
       {

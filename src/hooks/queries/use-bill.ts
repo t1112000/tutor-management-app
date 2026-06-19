@@ -84,11 +84,12 @@ export function useDeleteBill(billId: number, studentId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
+      qc.invalidateQueries({ queryKey: ['report'], exact: false })
     },
   })
 }
 
-export function useUpdateBill(billId: number) {
+export function useUpdateBill(billId: number, studentId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (updates: { totalAmount: number; notes: string | null }) => {
@@ -102,11 +103,12 @@ export function useUpdateBill(billId: number) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
     },
   })
 }
 
-export function useAddSession(billId: number) {
+export function useAddSession(billId: number, studentId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: { scheduledDate: string; startTime: string; endTime: string }) => {
@@ -120,11 +122,12 @@ export function useAddSession(billId: number) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
     },
   })
 }
 
-export function useDeleteSession(billId: number) {
+export function useDeleteSession(billId: number, studentId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (sessionId: number) => {
@@ -135,6 +138,7 @@ export function useDeleteSession(billId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
+      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
     },
   })
 }
