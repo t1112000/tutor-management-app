@@ -11,7 +11,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params;
 
   const bill = await Bill.findOne({
-    where: { id: Number(id) },
+    where: { id: Number(id), deletedAt: null },
     include: [
       { model: Student, as: "student" },
       { model: BillSession, as: "sessions", order: [["scheduledDate", "ASC"], ["startTime", "ASC"]] as any },
@@ -26,11 +26,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (response) return response;
   const { id } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id) } });
+  const bill = await Bill.findOne({ where: { id: Number(id), deletedAt: null } });
   if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (bill.status === "paid") return NextResponse.json({ error: "Paid bills cannot be modified" }, { status: 400 });
 
   const { totalAmount, notes } = await req.json();
   await bill.update({ totalAmount, notes });
   return NextResponse.json(bill);
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { user, response } = await requireUser();
+  if (response) return response;
+  const { id } = await params;
+
+  const bill = await Bill.findOne({ where: { id: Number(id), deletedAt: null } });
+  if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await bill.update({ deletedAt: new Date() });
+  return NextResponse.json({ ok: true });
 }

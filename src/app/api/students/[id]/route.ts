@@ -18,6 +18,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       {
         model: Bill,
         as: "bills",
+        where: { deletedAt: null },
+        required: false,
         include: [{ model: BillSession, as: "sessions" }],
         order: [["createdAt", "DESC"]] as any,
       },
@@ -48,14 +50,12 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({
-    where: { id: Number(id) },
-    include: [{ model: Bill, as: "bills", include: [{ model: BillSession, as: "sessions" }] }],
-  });
+  const student = await Student.findOne({ where: { id: Number(id) } });
   if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Delete bill sessions → bills → schedules → student (cascade manually)
-  for (const bill of (student as any).bills ?? []) {
+  // Destroy all bills (including soft-deleted) and their sessions
+  const allBills = await Bill.findAll({ where: { studentId: student.id } });
+  for (const bill of allBills) {
     await BillSession.destroy({ where: { billId: bill.id } });
     await bill.destroy();
   }
