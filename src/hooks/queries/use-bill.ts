@@ -74,3 +74,67 @@ export function usePayBill(billId: number) {
     },
   })
 }
+
+export function useDeleteBill(billId: number, studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await expectOk(await fetch(`/api/bills/${billId}`, { method: 'DELETE' }))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
+    },
+  })
+}
+
+export function useUpdateBill(billId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (updates: { totalAmount: number; notes: string | null }) => {
+      await expectOk(
+        await fetch(`/api/bills/${billId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        })
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+    },
+  })
+}
+
+export function useAddSession(billId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { scheduledDate: string; startTime: string; endTime: string }) => {
+      await expectOk(
+        await fetch(`/api/bills/${billId}/sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        })
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+    },
+  })
+}
+
+export function useDeleteSession(billId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (sessionId: number) => {
+      await expectOk(
+        await fetch(`/api/bills/${billId}/sessions/${sessionId}`, { method: 'DELETE' })
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+      qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
+    },
+  })
+}
