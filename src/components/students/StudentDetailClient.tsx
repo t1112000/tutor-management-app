@@ -8,7 +8,7 @@ import type { StudentForm } from "@/hooks/queries/use-students";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, Pencil, Plus, X } from "lucide-react";
+import { ChevronLeft, Pencil, Plus, X, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -25,6 +25,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { formatMoneyVND, formatDateVN } from "@/lib/time";
+import { useDeleteBill } from "@/hooks/queries/use-bill";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { STUDENT_COLORS } from "@/lib/student-colors";
 import useIsMobile from "@/hooks/use-is-mobile";
 
@@ -1692,13 +1698,58 @@ function ScheduleCard({
   );
 }
 
+function DeleteBillButton({ billId, studentId }: { billId: number; studentId: number }) {
+  const { mutate: deleteBill, isPending } = useDeleteBill(billId, studentId);
+  function handleDelete() {
+    deleteBill(undefined, {
+      onSuccess: () => toast.success("Đã xoá hóa đơn"),
+      onError: () => toast.error("Xoá thất bại"),
+    });
+  }
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: 28, height: 28, borderRadius: "50%",
+            background: "#FFF1F2", border: "1px solid #FECDD3",
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Trash2 size={13} color="#E11D48" />
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Xoá hóa đơn?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Hóa đơn này sẽ bị xoá vĩnh viễn. Hành động không thể hoàn tác.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Huỷ</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={isPending}
+            style={{ background: "#E11D48", color: "white" }}
+          >
+            {isPending ? "Đang xoá..." : "Xoá"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 interface BillsTableProps {
   bills: BillSummary[];
   studentId: number;
   isMobile: boolean;
 }
 
-function BillsTable({ bills, isMobile }: BillsTableProps) {
+function BillsTable({ bills, studentId, isMobile }: BillsTableProps) {
   const router = useRouter();
   return (
     <div
@@ -1752,7 +1803,7 @@ function BillsTable({ bills, isMobile }: BillsTableProps) {
                   cursor: "pointer",
                 }}
               >
-                {/* Top row: status badge + date */}
+                {/* Top row: status badge + date + delete */}
                 <div
                   style={{
                     display: "flex",
@@ -1773,9 +1824,12 @@ function BillsTable({ bills, isMobile }: BillsTableProps) {
                   >
                     {isPaid ? "Đã thu" : "Chưa thanh toán"}
                   </span>
-                  <span style={{ fontSize: 13, color: "#6B7280" }}>
-                    {b.startDate ? formatDateVN(b.startDate) : "—"}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 13, color: "#6B7280" }}>
+                      {b.startDate ? formatDateVN(b.startDate) : "—"}
+                    </span>
+                    <DeleteBillButton billId={b.id} studentId={studentId} />
+                  </div>
                 </div>
                 {/* Bottom row: progress + amount */}
                 <div
@@ -1825,7 +1879,7 @@ function BillsTable({ bills, isMobile }: BillsTableProps) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["NGÀY BẮT ĐẦU", "TIẾN ĐỘ", "SỐ TIỀN", "TRẠNG THÁI", "XEM"].map(
+              {["NGÀY BẮT ĐẦU", "TIẾN ĐỘ", "SỐ TIỀN", "TRẠNG THÁI", "THAO TÁC"].map(
                 (col) => (
                   <th
                     key={col}
@@ -1924,17 +1978,15 @@ function BillsTable({ bills, isMobile }: BillsTableProps) {
                     </span>
                   </td>
                   <td style={{ padding: "14px 0" }}>
-                    <Link
-                      href={`/bills/${b.id}`}
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "#E8788A",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Xem →
-                    </Link>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Link
+                        href={`/bills/${b.id}`}
+                        style={{ fontSize: 13, fontWeight: 600, color: "#E8788A", textDecoration: "none" }}
+                      >
+                        Xem →
+                      </Link>
+                      <DeleteBillButton billId={b.id} studentId={studentId} />
+                    </div>
                   </td>
                 </tr>
               );
