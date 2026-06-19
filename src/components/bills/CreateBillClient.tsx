@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -58,6 +58,7 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [openPicker, setOpenPicker] = useState<string | null>(null);
+  const pauseAutoGen = useRef(false);
 
   useEffect(() => {
     fetch(`/api/students/${studentId}`)
@@ -67,6 +68,10 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
 
   useEffect(() => {
     if (!student) return;
+    if (pauseAutoGen.current) {
+      pauseAutoGen.current = false;
+      return;
+    }
     const count = parseInt(sessionCount) || 0;
     if (count > 0 && student.schedules.length > 0) {
       setSessions(generateSessions(startDate, count, student.schedules));
@@ -82,19 +87,25 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
   }
 
   function removeSession(i: number) {
-    setSessions((prev) => prev.filter((_, idx) => idx !== i));
+    pauseAutoGen.current = true;
+    const next = sessions.filter((_, idx) => idx !== i);
+    setSessions(next);
+    setSessionCount(String(next.length));
   }
 
   function addSession() {
+    pauseAutoGen.current = true;
     const last = sessions[sessions.length - 1];
-    setSessions((prev) => [
-      ...prev,
+    const next = [
+      ...sessions,
       {
         scheduledDate: last?.scheduledDate ?? startDate,
         startTime: last?.startTime ?? "08:00",
         endTime: last?.endTime ?? "09:30",
       },
-    ]);
+    ];
+    setSessions(next);
+    setSessionCount(String(next.length));
   }
 
   async function submit() {
