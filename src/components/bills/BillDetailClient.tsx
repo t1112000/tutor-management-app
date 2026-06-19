@@ -155,7 +155,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "16px" : "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ flex: 1, overflow: "auto", minHeight: 0, padding: isMobile ? "16px" : "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
 
         {isMobile ? (
           /* ── Mobile layout ── */
@@ -263,7 +263,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                         value={s.scheduledDate}
                         onChange={(d) => saveSession(s.id, { scheduledDate: d })}
                         trigger={
-                          <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820", cursor: "pointer", display: "inline" }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820", cursor: "pointer", display: "block" }}>
                             {fmtDate(s.scheduledDate)}
                           </div>
                         }
@@ -316,6 +316,9 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 </div>
               ))}
             </div>
+
+            {/* spacer to cover body background */}
+            <div style={{ height: 8 }} />
           </>
         ) : (
           /* ── Desktop layout ── */
