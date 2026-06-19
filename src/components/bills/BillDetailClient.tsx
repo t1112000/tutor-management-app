@@ -223,8 +223,12 @@ export default function BillDetailClient({ billId }: { billId: number }) {
             >
               ← {bill.student.name}
             </button>
-            <span style={{ color: "#D4A0B0", fontSize: 14 }}>/</span>
-            <span style={{ fontSize: 15, fontWeight: 600, color: "#2C1820" }}>Chi tiết hóa đơn</span>
+            {!isMobile && (
+              <>
+                <span style={{ color: "#D4A0B0", fontSize: 14 }}>/</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#2C1820" }}>Chi tiết hóa đơn</span>
+              </>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -403,7 +407,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
             </div>
 
             {/* Sessions list card */}
-            <div style={{ ...cardStyle, overflow: "hidden" }}>
+            <div style={{ ...cardStyle, overflow: "hidden", flexShrink: 0 }}>
               <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #FDE8EC" }}>
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: "#2C1820", margin: 0 }}>
                   Danh sách buổi học
