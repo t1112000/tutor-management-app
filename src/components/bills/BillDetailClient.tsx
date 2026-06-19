@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { toast } from "sonner";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Plus, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -14,7 +14,11 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { formatMoneyVND } from "@/lib/time";
-import { useBill, useUpdateSession, usePayBill, Bill, BillSession } from "@/hooks/queries/use-bill";
+import {
+  useBill, useUpdateSession, usePayBill, useDeleteBill,
+  useUpdateBill, useAddSession, useDeleteSession,
+  Bill, BillSession,
+} from "@/hooks/queries/use-bill";
 
 function fmtDate(d: string) {
   const [y, m, day] = d.split("-");
@@ -102,6 +106,19 @@ export default function BillDetailClient({ billId }: { billId: number }) {
   const [editingNotes, setEditingNotes] = useState<{ id: number; value: string } | null>(null);
   const notesRef = useRef<HTMLInputElement>(null);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editAmount, setEditAmount] = useState<string>("");
+  const [editNotes, setEditNotes] = useState<string>("");
+  const [newSession, setNewSession] = useState<{ scheduledDate: string; startTime: string; endTime: string }>({
+    scheduledDate: "",
+    startTime: "07:00",
+    endTime: "08:00",
+  });
+  const { mutate: deleteBillMutation, isPending: deleteLoading } = useDeleteBill(billId, bill?.student?.id ?? 0);
+  const { mutate: updateBillMutation, isPending: saveLoading } = useUpdateBill(billId);
+  const { mutate: addSessionMutation, isPending: addingSession } = useAddSession(billId);
+  const { mutate: deleteSessionMutation } = useDeleteSession(billId);
+
   useEffect(() => {
     if (editingNotes) notesRef.current?.focus();
   }, [editingNotes?.id]);
@@ -118,6 +135,60 @@ export default function BillDetailClient({ billId }: { billId: number }) {
     markPaidMutation(undefined, {
       onSuccess: () => toast.success("Đã đánh dấu thanh toán"),
       onError: () => toast.error("Thao tác thất bại"),
+    });
+  }
+
+  function enterEditMode() {
+    if (!bill) return;
+    setEditAmount(String(bill.totalAmount));
+    setEditNotes(bill.notes ?? "");
+    setIsEditing(true);
+  }
+
+  function exitEditMode() {
+    setIsEditing(false);
+  }
+
+  function saveBillEdits() {
+    const amount = Number(editAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Học phí không hợp lệ");
+      return;
+    }
+    updateBillMutation(
+      { totalAmount: amount, notes: editNotes || null },
+      {
+        onSuccess: () => { toast.success("Đã lưu hóa đơn"); setIsEditing(false); },
+        onError: () => toast.error("Lưu thất bại"),
+      }
+    );
+  }
+
+  function addNewSession() {
+    if (!newSession.scheduledDate) { toast.error("Chọn ngày học"); return; }
+    addSessionMutation(newSession, {
+      onSuccess: () => {
+        toast.success("Đã thêm buổi học");
+        setNewSession({ scheduledDate: "", startTime: "07:00", endTime: "08:00" });
+      },
+      onError: () => toast.error("Thêm buổi thất bại"),
+    });
+  }
+
+  function removeSession(sessionId: number) {
+    deleteSessionMutation(sessionId, {
+      onSuccess: () => toast.success("Đã xoá buổi học"),
+      onError: () => toast.error("Xoá thất bại"),
+    });
+  }
+
+  function deleteBill() {
+    deleteBillMutation(undefined, {
+      onSuccess: () => {
+        toast.success("Đã xoá hóa đơn");
+        router.push(`/students/${bill!.student.id}`);
+      },
+      onError: () => toast.error("Xoá thất bại"),
     });
   }
 
@@ -138,19 +209,81 @@ export default function BillDetailClient({ billId }: { billId: number }) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Sticky header */}
       <div style={{ ...hdrStyle, padding: isMobile ? "0 16px" : "0 32px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button
-            onClick={() => router.push(`/students/${bill.student.id}`)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "5px 12px",
-              background: "#FFF0F5", border: "1px solid #F4D8DE", borderRadius: 8,
-              cursor: "pointer", fontSize: 13, color: "#C06070", fontWeight: 500,
-            }}
-          >
-            ← {bill.student.name}
-          </button>
-          <span style={{ color: "#D4A0B0", fontSize: 14 }}>/</span>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#2C1820" }}>Chi tiết hóa đơn</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => router.push(`/students/${bill.student.id}`)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "5px 12px",
+                background: "#FFF0F5", border: "1px solid #F4D8DE", borderRadius: 8,
+                cursor: "pointer", fontSize: 13, color: "#C06070", fontWeight: 500,
+              }}
+            >
+              ← {bill.student.name}
+            </button>
+            <span style={{ color: "#D4A0B0", fontSize: 14 }}>/</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: "#2C1820" }}>Chi tiết hóa đơn</span>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {!isPaid && (
+              isEditing ? (
+                <button
+                  onClick={exitEditMode}
+                  style={{
+                    padding: "5px 14px", borderRadius: 8, border: "1px solid #F4D8DE",
+                    background: "white", color: "#A87888", fontWeight: 500, fontSize: 13, cursor: "pointer",
+                  }}
+                >
+                  Huỷ
+                </button>
+              ) : (
+                <button
+                  onClick={enterEditMode}
+                  style={{
+                    padding: "5px 14px", borderRadius: 8, border: "1px solid #F4D8DE",
+                    background: "white", color: "#A87888", fontWeight: 500, fontSize: 13, cursor: "pointer",
+                  }}
+                >
+                  Chỉnh sửa
+                </button>
+              )
+            )}
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  style={{
+                    padding: "5px 12px", borderRadius: 8,
+                    border: "1px solid #FECDD3", background: "#FFF1F2",
+                    color: "#E11D48", fontWeight: 500, fontSize: 13, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 5,
+                  }}
+                >
+                  <Trash2 size={13} />
+                  Xoá
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xoá hóa đơn?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Hóa đơn {formatMoneyVND(bill.totalAmount)} sẽ bị xoá. Hành động này không thể hoàn tác.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Huỷ</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={deleteBill}
+                    disabled={deleteLoading}
+                    style={{ background: "#E11D48", color: "white" }}
+                  >
+                    {deleteLoading ? "Đang xoá..." : "Xoá hóa đơn"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
 
@@ -183,7 +316,20 @@ export default function BillDetailClient({ billId }: { billId: number }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 11, color: "#A87888", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>Học phí</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#E8788A" }}>{formatMoneyVND(bill.totalAmount)}</div>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={editAmount}
+                      onChange={(e) => setEditAmount(e.target.value)}
+                      style={{
+                        width: 130, height: 34, padding: "0 10px",
+                        background: "#FFF8FA", border: "1px solid #ECC8D0",
+                        borderRadius: 8, fontSize: 17, fontWeight: 700, color: "#E8788A",
+                      }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#E8788A" }}>{formatMoneyVND(bill.totalAmount)}</div>
+                  )}
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>{attended}/{bill.sessionCount} buổi</div>
@@ -199,6 +345,22 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                   borderRadius: 99, transition: "width 600ms ease",
                 }} />
               </div>
+
+              {/* Save button (edit mode) */}
+              {isEditing && (
+                <button
+                  onClick={saveBillEdits}
+                  disabled={saveLoading}
+                  style={{
+                    width: "100%", height: 40, border: "none", borderRadius: 10, cursor: "pointer",
+                    background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                    color: "white", fontWeight: 600, fontSize: 13, marginBottom: 8,
+                    opacity: saveLoading ? 0.7 : 1,
+                  }}
+                >
+                  {saveLoading ? "Đang lưu..." : "Lưu thông tin"}
+                </button>
+              )}
 
               {/* Pay button */}
               {!isPaid && (
@@ -313,8 +475,90 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                     onCheckedChange={() => toggleAttended(s.id, s.isAttended)}
                     disabled={isPaid}
                   />
+
+                  {/* Delete session button (edit mode only) */}
+                  {isEditing && (
+                    <button
+                      onClick={() => removeSession(s.id)}
+                      style={{
+                        width: 28, height: 28, borderRadius: "50%",
+                        background: "#FFF1F2", border: "1px solid #FECDD3",
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Trash2 size={13} color="#E11D48" />
+                    </button>
+                  )}
                 </div>
               ))}
+
+              {/* Add session form (edit mode) */}
+              {isEditing && (
+                <div style={{
+                  margin: "12px 20px 8px",
+                  padding: "14px 16px",
+                  background: "#FFF8FA", borderRadius: 10, border: "1px dashed #F4D8DE",
+                  display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#A87888", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+                    <Plus size={13} style={{ marginRight: 4 }} />
+                    Thêm buổi:
+                  </span>
+                  <DatePicker
+                    value={newSession.scheduledDate}
+                    onChange={(d) => setNewSession((p) => ({ ...p, scheduledDate: d }))}
+                    trigger={
+                      <span style={{
+                        padding: "5px 12px", borderRadius: 8, border: "1px solid #F4D8DE",
+                        background: "white", fontSize: 13, cursor: "pointer", color: newSession.scheduledDate ? "#2C1820" : "#A87888",
+                      }}>
+                        {newSession.scheduledDate ? newSession.scheduledDate : "Chọn ngày"}
+                      </span>
+                    }
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <span style={{
+                        padding: "5px 12px", borderRadius: 8, border: "1px solid #F4D8DE",
+                        background: "white", fontSize: 13, cursor: "pointer", color: "#2C1820",
+                      }}>
+                        {newSession.startTime} – {newSession.endTime}
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent style={{
+                      width: 280, padding: 20, borderRadius: 18,
+                      border: "1px solid #F4D8DE", boxShadow: "0 8px 32px rgba(232,120,138,0.15)", background: "white",
+                    }}>
+                      <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>Giờ học</p>
+                      <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 16 }}>
+                        <TimeSpinner
+                          label="Bắt đầu"
+                          value={newSession.startTime}
+                          onChange={(v) => setNewSession((p) => ({ ...p, startTime: v }))}
+                        />
+                        <TimeSpinner
+                          label="Kết thúc"
+                          value={newSession.endTime}
+                          onChange={(v) => setNewSession((p) => ({ ...p, endTime: v }))}
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <button
+                    onClick={addNewSession}
+                    disabled={addingSession}
+                    style={{
+                      padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+                      background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                      color: "white", fontWeight: 600, fontSize: 13,
+                      opacity: addingSession ? 0.7 : 1,
+                    }}
+                  >
+                    {addingSession ? "Đang thêm..." : "Thêm"}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* spacer to cover body background */}
@@ -332,7 +576,20 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 </div>
                 <div>
                   <div style={labelStyle}>Học phí</div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(bill.totalAmount)}</div>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={editAmount}
+                      onChange={(e) => setEditAmount(e.target.value)}
+                      style={{
+                        width: 140, height: 34, padding: "0 10px",
+                        background: "#FFF8FA", border: "1px solid #ECC8D0",
+                        borderRadius: 8, fontSize: 15, fontWeight: 700, color: "#2C1820",
+                      }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(bill.totalAmount)}</div>
+                  )}
                 </div>
                 <div>
                   <div style={labelStyle}>Tiến độ</div>
@@ -347,6 +604,20 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 }}>
                   {isPaid ? "Đã thanh toán" : "Chưa thanh toán"}
                 </span>
+                {isEditing && (
+                  <button
+                    onClick={saveBillEdits}
+                    disabled={saveLoading}
+                    style={{
+                      padding: "7px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+                      background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                      color: "white", fontWeight: 600, fontSize: 13,
+                      opacity: saveLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {saveLoading ? "Đang lưu..." : "Lưu"}
+                  </button>
+                )}
                 {!isPaid && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -411,7 +682,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
             <>
               {/* Table header */}
               <div style={{
-                display: "grid", gridTemplateColumns: "48px 1fr 1fr 88px 1fr",
+                display: "grid", gridTemplateColumns: isEditing ? "48px 1fr 1fr 88px 1fr 40px" : "48px 1fr 1fr 88px 1fr",
                 padding: "6px 12px", marginBottom: 2,
               }}>
                 <span style={colHdr}>#</span>
@@ -419,6 +690,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 <span style={colHdr}>Giờ</span>
                 <span style={{ ...colHdr, textAlign: "center" }}>Đã học</span>
                 <span style={colHdr}>Ghi chú</span>
+                {isEditing && <span />}
               </div>
 
               {/* Rows */}
@@ -426,7 +698,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 <div
                   key={s.id}
                   style={{
-                    display: "grid", gridTemplateColumns: "48px 1fr 1fr 88px 1fr",
+                    display: "grid", gridTemplateColumns: isEditing ? "48px 1fr 1fr 88px 1fr 40px" : "48px 1fr 1fr 88px 1fr",
                     alignItems: "center", padding: "10px 12px", borderRadius: 10,
                     background: s.isAttended ? "#FFF5F8" : "transparent",
                     borderBottom: i < sorted.length - 1 ? "1px solid #F8ECF0" : "none",
@@ -559,8 +831,90 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                       {s.notes || (isPaid ? "" : "Thêm ghi chú...")}
                     </span>
                   )}
+
+                  {/* Delete session button (edit mode only) */}
+                  {isEditing && (
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <button
+                        onClick={() => removeSession(s.id)}
+                        style={{
+                          width: 28, height: 28, borderRadius: "50%",
+                          background: "#FFF1F2", border: "1px solid #FECDD3",
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Trash2 size={13} color="#E11D48" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
+
+              {/* Add session form (edit mode) */}
+              {isEditing && (
+                <div style={{
+                  marginTop: 12, padding: "14px 16px",
+                  background: "#FFF8FA", borderRadius: 10, border: "1px dashed #F4D8DE",
+                  display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#A87888", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+                    <Plus size={13} style={{ marginRight: 4 }} />
+                    Thêm buổi:
+                  </span>
+                  <DatePicker
+                    value={newSession.scheduledDate}
+                    onChange={(d) => setNewSession((p) => ({ ...p, scheduledDate: d }))}
+                    trigger={
+                      <span style={{
+                        padding: "5px 12px", borderRadius: 8, border: "1px solid #F4D8DE",
+                        background: "white", fontSize: 13, cursor: "pointer", color: newSession.scheduledDate ? "#2C1820" : "#A87888",
+                      }}>
+                        {newSession.scheduledDate ? newSession.scheduledDate : "Chọn ngày"}
+                      </span>
+                    }
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <span style={{
+                        padding: "5px 12px", borderRadius: 8, border: "1px solid #F4D8DE",
+                        background: "white", fontSize: 13, cursor: "pointer", color: "#2C1820",
+                      }}>
+                        {newSession.startTime} – {newSession.endTime}
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent style={{
+                      width: 280, padding: 20, borderRadius: 18,
+                      border: "1px solid #F4D8DE", boxShadow: "0 8px 32px rgba(232,120,138,0.15)", background: "white",
+                    }}>
+                      <p style={{ fontWeight: 700, fontSize: 14, color: "#2C1820", margin: "0 0 16px" }}>Giờ học</p>
+                      <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 16 }}>
+                        <TimeSpinner
+                          label="Bắt đầu"
+                          value={newSession.startTime}
+                          onChange={(v) => setNewSession((p) => ({ ...p, startTime: v }))}
+                        />
+                        <TimeSpinner
+                          label="Kết thúc"
+                          value={newSession.endTime}
+                          onChange={(v) => setNewSession((p) => ({ ...p, endTime: v }))}
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <button
+                    onClick={addNewSession}
+                    disabled={addingSession}
+                    style={{
+                      padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+                      background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                      color: "white", fontWeight: 600, fontSize: 13,
+                      opacity: addingSession ? 0.7 : 1,
+                    }}
+                  >
+                    {addingSession ? "Đang thêm..." : "Thêm"}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
