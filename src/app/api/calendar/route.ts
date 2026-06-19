@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         model: Bill,
         as: "bill",
         where: { deletedAt: null },
-        required: false,
+        required: true,
         include: [{ model: Student, as: "student" }],
       },
     ],
