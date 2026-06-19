@@ -204,6 +204,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
     a.scheduledDate.localeCompare(b.scheduledDate) || a.startTime.localeCompare(b.startTime)
   );
   const isPaid = bill.status === "paid";
+  useEffect(() => { if (isPaid) setIsEditing(false); }, [isPaid]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
