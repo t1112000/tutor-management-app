@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-helpers";
-import { Student, StudentSchedule } from "@/lib/db/index";
+import { Bill, Student, StudentSchedule } from "@/lib/db/index";
 import { studentSchema } from "@/lib/validations";
 import { Op } from "sequelize";
 
@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
 
   const students = await Student.findAll({
     where,
-    include: [{ model: StudentSchedule, as: "schedules" }],
+    include: [
+      { model: StudentSchedule, as: "schedules" },
+      { model: Bill, as: "bills", attributes: ["id"], where: { deletedAt: null }, required: false },
+    ],
     order: [["name", "ASC"]],
   });
   return NextResponse.json(students);

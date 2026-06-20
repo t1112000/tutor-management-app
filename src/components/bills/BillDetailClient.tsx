@@ -202,7 +202,8 @@ export default function BillDetailClient({ billId }: { billId: number }) {
   );
 
   const attended = bill.sessions.filter((s) => s.isAttended).length;
-  const pct = bill.sessionCount > 0 ? Math.round((attended / bill.sessionCount) * 100) : 0;
+  const totalSessions = bill.sessions.length;
+  const pct = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
   const sorted = [...bill.sessions].sort((a, b) =>
     a.scheduledDate.localeCompare(b.scheduledDate) || a.startTime.localeCompare(b.startTime)
   );
@@ -338,7 +339,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                   )}
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>{attended}/{bill.sessionCount} buổi</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#2C1820" }}>{attended}/{totalSessions} buổi</div>
                   <div style={{ fontSize: 12, color: "#E8788A", fontWeight: 700 }}>{pct}%</div>
                 </div>
               </div>
@@ -385,9 +386,9 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                       <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
                       <AlertDialogDescription>
                         Đánh dấu hóa đơn {formatMoneyVND(bill.totalAmount)} là đã thanh toán?
-                        {attended < bill.sessionCount && (
+                        {attended < totalSessions && (
                           <span style={{ display: "block", marginTop: 8, color: "#E8780A" }}>
-                            Lưu ý: còn {bill.sessionCount - attended} buổi chưa điểm danh.
+                            Lưu ý: còn {totalSessions - attended} buổi chưa điểm danh.
                           </span>
                         )}
                         <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
@@ -599,7 +600,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 </div>
                 <div>
                   <div style={labelStyle}>Tiến độ</div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{attended}/{bill.sessionCount} buổi đã học</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#2C1820" }}>{attended}/{totalSessions} buổi đã học</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -640,9 +641,9 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                         <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
                         <AlertDialogDescription>
                           Đánh dấu hóa đơn {formatMoneyVND(bill.totalAmount)} là đã thanh toán?
-                          {attended < bill.sessionCount && (
+                          {attended < totalSessions && (
                             <span style={{ display: "block", marginTop: 8, color: "#E8780A" }}>
-                              Lưu ý: còn {bill.sessionCount - attended} buổi chưa điểm danh.
+                              Lưu ý: còn {totalSessions - attended} buổi chưa điểm danh.
                             </span>
                           )}
                           <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
@@ -666,7 +667,7 @@ export default function BillDetailClient({ billId }: { billId: number }) {
             <div style={{ ...cardStyle, padding: "20px 28px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <span style={{ fontSize: 14, fontWeight: 500, color: "#2C1820" }}>
-                  {attended}/{bill.sessionCount} buổi đã học
+                  {attended}/{totalSessions} buổi đã học
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#E8788A" }}>{pct}%</span>
               </div>
