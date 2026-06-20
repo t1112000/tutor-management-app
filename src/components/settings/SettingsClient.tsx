@@ -66,6 +66,26 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
   const isMobile = useIsMobile();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
+  const [name, setName] = useState(userName ?? "");
+  const [savingName, setSavingName] = useState(false);
+
+  async function handleSaveName() {
+    if (!name.trim()) { toast.error("Tên không được để trống"); return; }
+    setSavingName(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) { toast.error("Lưu thất bại"); return; }
+      toast.success("Đã cập nhật tên");
+    } catch {
+      toast.error("Có lỗi xảy ra");
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -163,12 +183,35 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div>
               <label style={labelStyle}>Tên giáo viên</label>
-              <input style={inputStyle} type="text" defaultValue={userName ?? ""} readOnly />
+              <input
+                style={inputStyle}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div>
               <label style={labelStyle}>Email</label>
               <input style={inputStyle} type="text" defaultValue={userEmail} readOnly />
             </div>
+            <button
+              onClick={handleSaveName}
+              disabled={savingName}
+              style={{
+                width: "100%",
+                background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                color: "white",
+                border: "none",
+                borderRadius: "10px",
+                padding: "10px 0",
+                fontSize: "13px",
+                fontWeight: 500,
+                cursor: savingName ? "not-allowed" : "pointer",
+                opacity: savingName ? 0.7 : 1,
+              }}
+            >
+              {savingName ? "Đang lưu..." : "Lưu tên"}
+            </button>
           </div>
         </div>
 

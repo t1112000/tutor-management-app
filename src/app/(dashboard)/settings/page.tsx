@@ -17,7 +17,7 @@ export default async function SettingsPage() {
   return (
     <SettingsClient
       userEmail={session.user.email ?? ""}
-      userName={session.user.name ?? null}
+      userName={dbUser?.name ?? null}
       notificationsEnabled={dbUser?.pushEnabled ?? false}
     />
   );

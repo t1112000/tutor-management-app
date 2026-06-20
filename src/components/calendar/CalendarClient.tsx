@@ -22,6 +22,7 @@ interface Session {
       subject: "english" | "chinese";
       color: string | null;
       type: "offline" | "online" | null;
+      address: string | null;
     };
   };
 }
@@ -233,6 +234,68 @@ export default function CalendarClient() {
               {selected.startTime}–{selected.endTime}
             </div>
           </div>
+        </div>
+
+        {/* Teaching mode & address */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: student.type === "offline" && student.address ? "auto 1fr" : "1fr",
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
+          <div
+            style={{
+              background: student.type === "online" ? "#EFF6FF" : "#F0FDF4",
+              border: `1px solid ${student.type === "online" ? "#BFDBFE" : "#BBF7D0"}`,
+              borderRadius: 10,
+              padding: "10px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ fontSize: 14 }}>{student.type === "online" ? "🌐" : "📍"}</span>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: student.type === "online" ? "#3B82F6" : "#16A34A",
+              }}
+            >
+              {student.type === "online" ? "Online" : "Offline"}
+            </span>
+          </div>
+          {student.type === "offline" && student.address && (
+            <div
+              style={{
+                background: "#FFF8FA",
+                border: "1px solid #F4D8DE",
+                borderRadius: 10,
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                overflow: "hidden",
+              }}
+            >
+              <span style={{ fontSize: 13, color: "#C4A0A8", flexShrink: 0 }}>🏠</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#5C3040",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {student.address}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Link to bill */}

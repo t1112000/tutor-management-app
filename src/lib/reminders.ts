@@ -10,13 +10,11 @@ async function remindForUser(userId: number, today: string): Promise<number> {
       {
         model: Bill,
         as: "bill",
-        where: { status: "unpaid", createdBy: userId },
+        where: { createdBy: userId },
         include: [{ model: Student, as: "student" }],
       },
     ],
   });
-
-  if (sessions.length === 0) return 0;
 
   const { User } = await import("@/lib/db/index");
   const user = await User.findByPk(userId);
@@ -26,9 +24,11 @@ async function remindForUser(userId: number, today: string): Promise<number> {
   }
 
   const body =
-    sessions.length === 1
-      ? "Bạn có 1 buổi dạy hôm nay chưa thanh toán"
-      : `Bạn có ${sessions.length} buổi dạy hôm nay chưa thanh toán`;
+    sessions.length === 0
+      ? "Hôm nay bé iu không có lịch dạy, cố gắng nghỉ ngơi cho một ngày thật đã nha 🌸"
+      : sessions.length === 1
+      ? "Bạn có 1 buổi dạy hôm nay"
+      : `Bạn có ${sessions.length} buổi dạy hôm nay`;
 
   try {
     await sendPush(user.pushSubscription as PushSubscription, {
