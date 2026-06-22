@@ -7,6 +7,7 @@ export interface CalendarSession {
   startTime: string
   endTime: string
   isAttended: boolean
+  notes: string | null
   bill: {
     id: number
     student: {
@@ -14,6 +15,7 @@ export interface CalendarSession {
       subject: 'english' | 'chinese'
       color: string | null
       type: 'offline' | 'online' | null
+      address: string | null
     }
   }
 }

@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, Pencil } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { weekStartStr, addDaysStr, formatWeekRangeVN } from "@/lib/time";
 import { findColor, hashColor } from "@/lib/student-colors";
+import { keys } from "@/lib/query-keys";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useCalendar } from "@/hooks/queries/use-calendar";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Session {
   id: number;
@@ -15,6 +21,7 @@ interface Session {
   startTime: string;
   endTime: string;
   isAttended: boolean;
+  notes: string | null;
   bill: {
     id: number;
     student: {
@@ -69,11 +76,64 @@ function formatDayMonth(dateStr: string) {
 
 export default function CalendarClient() {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const [weekStart, setWeekStart] = useState(() =>
     weekStartStr(new Date().toISOString().slice(0, 10)),
   );
   const { data: sessions = [], isLoading: loading } = useCalendar(weekStart);
   const [selected, setSelected] = useState<Session | null>(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [startPickerOpen, setStartPickerOpen] = useState(false);
+  const [endPickerOpen, setEndPickerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  function handleEdit() {
+    if (!selected) return;
+    setEditDate(selected.scheduledDate);
+    setEditStart(selected.startTime);
+    setEditEnd(selected.endTime);
+    setEditNotes(selected.notes ?? "");
+    setIsEditing(true);
+  }
+
+  function handleCancelEdit() {
+    setIsEditing(false);
+  }
+
+  async function handleSave() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `/api/bills/${selected.bill.id}/sessions/${selected.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scheduledDate: editDate,
+            startTime: editStart,
+            endTime: editEnd,
+            notes: editNotes || null,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Failed");
+      const updated = await res.json();
+      setSelected({ ...selected, ...updated });
+      queryClient.invalidateQueries({ queryKey: keys.calendar.week(weekStart) });
+      setIsEditing(false);
+      toast.success("Đã cập nhật buổi học");
+    } catch {
+      toast.error("Có lỗi xảy ra");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const days = Array.from({ length: 7 }, (_, i) => addDaysStr(weekStart, i));
@@ -115,6 +175,31 @@ export default function CalendarClient() {
     (s) => s.scheduledDate === selectedDayStr,
   );
 
+  const fieldLabel: React.CSSProperties = {
+    fontSize: 11,
+    color: "#C4A0A8",
+    fontWeight: 600,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  };
+
+  const timePickerTriggerStyle: React.CSSProperties = {
+    width: "100%",
+    height: 40,
+    background: "#FFF8FA",
+    border: "1px solid #ECC8D0",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#2C1820",
+    fontFamily: "monospace",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
   // Session detail modal content
   const renderSessionDetail = () => {
     if (!selected) return null;
@@ -124,13 +209,13 @@ export default function CalendarClient() {
       student.name.split(" ").slice(-1)[0]?.[0]?.toUpperCase() ?? "?";
     return (
       <>
-        {/* Student info */}
+        {/* Student info — always shown */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 14,
-            marginBottom: 24,
+            marginBottom: 20,
           }}
         >
           <div
@@ -176,146 +261,240 @@ export default function CalendarClient() {
           </div>
         </div>
 
-        {/* Date & time */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            background: "#FFF8FA",
-            borderRadius: 14,
-            padding: "16px 20px",
-            border: "1px solid #F4D8DE",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: "#C4A0A8",
-                fontWeight: 600,
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Ngày
+        {isEditing ? (
+          /* ── Edit mode ── */
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Date */}
+            <div>
+              <div style={fieldLabel}>Ngày</div>
+              <DatePicker value={editDate} onChange={setEditDate} />
             </div>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: "#2C1820",
-              }}
-            >
-              {formatDayMonth(selected.scheduledDate)}
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: "#C4A0A8",
-                fontWeight: 600,
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Giờ học
-            </div>
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "#2C1820",
-                fontFamily: "monospace",
-              }}
-            >
-              {selected.startTime}–{selected.endTime}
-            </div>
-          </div>
-        </div>
 
-        {/* Teaching mode & address */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: student.type === "offline" && student.address ? "auto 1fr" : "1fr",
-            gap: 12,
-            marginTop: 12,
-          }}
-        >
-          <div
-            style={{
-              background: student.type === "online" ? "#EFF6FF" : "#F0FDF4",
-              border: `1px solid ${student.type === "online" ? "#BFDBFE" : "#BBF7D0"}`,
-              borderRadius: 10,
-              padding: "10px 14px",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ fontSize: 14 }}>{student.type === "online" ? "🌐" : "📍"}</span>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: student.type === "online" ? "#3B82F6" : "#16A34A",
-              }}
-            >
-              {student.type === "online" ? "Online" : "Offline"}
-            </span>
+            {/* Start & end time */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <div style={fieldLabel}>Giờ bắt đầu</div>
+                <TimePicker
+                  label="Giờ bắt đầu"
+                  value={editStart}
+                  onChange={setEditStart}
+                  onConfirm={() => setStartPickerOpen(false)}
+                  open={startPickerOpen}
+                  onOpenChange={setStartPickerOpen}
+                >
+                  <button type="button" style={timePickerTriggerStyle}>
+                    {editStart}
+                  </button>
+                </TimePicker>
+              </div>
+              <div>
+                <div style={fieldLabel}>Giờ kết thúc</div>
+                <TimePicker
+                  label="Giờ kết thúc"
+                  value={editEnd}
+                  onChange={setEditEnd}
+                  onConfirm={() => setEndPickerOpen(false)}
+                  open={endPickerOpen}
+                  onOpenChange={setEndPickerOpen}
+                >
+                  <button type="button" style={timePickerTriggerStyle}>
+                    {editEnd}
+                  </button>
+                </TimePicker>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <div style={fieldLabel}>Ghi chú</div>
+              <Textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Nhập ghi chú..."
+                rows={3}
+                style={{ resize: "none", fontSize: 13 }}
+              />
+            </div>
+
+            {/* Save / Cancel */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <button
+                onClick={handleCancelEdit}
+                style={{
+                  height: 40,
+                  background: "#FFF8FA",
+                  border: "1px solid #F4D8DE",
+                  borderRadius: 10,
+                  color: "#A87888",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  height: 40,
+                  background: saving
+                    ? "#F0A0B0"
+                    : "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                  border: "none",
+                  borderRadius: 10,
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: saving ? "not-allowed" : "pointer",
+                }}
+              >
+                {saving ? "Đang lưu..." : "Lưu"}
+              </button>
+            </div>
           </div>
-          {student.type === "offline" && student.address && (
+        ) : (
+          /* ── View mode ── */
+          <>
+            {/* Date & time */}
             <div
               style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
                 background: "#FFF8FA",
+                borderRadius: 14,
+                padding: "16px 20px",
                 border: "1px solid #F4D8DE",
-                borderRadius: 10,
-                padding: "10px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                overflow: "hidden",
               }}
             >
-              <span style={{ fontSize: 13, color: "#C4A0A8", flexShrink: 0 }}>🏠</span>
-              <span
+              <div>
+                <div style={fieldLabel}>Ngày</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#2C1820" }}>
+                  {formatDayMonth(selected.scheduledDate)}
+                </div>
+              </div>
+              <div>
+                <div style={fieldLabel}>Giờ học</div>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "#2C1820",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {selected.startTime}–{selected.endTime}
+                </div>
+              </div>
+            </div>
+
+            {/* Teaching mode & address */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  student.type === "offline" && student.address
+                    ? "auto 1fr"
+                    : "1fr",
+                gap: 10,
+                marginTop: 10,
+              }}
+            >
+              <div
                 style={{
-                  fontSize: 12,
-                  color: "#5C3040",
-                  fontWeight: 500,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  background: student.type === "online" ? "#EFF6FF" : "#F0FDF4",
+                  border: `1px solid ${student.type === "online" ? "#BFDBFE" : "#BBF7D0"}`,
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   whiteSpace: "nowrap",
                 }}
               >
-                {student.address}
-              </span>
+                <span style={{ fontSize: 14 }}>
+                  {student.type === "online" ? "🌐" : "📍"}
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: student.type === "online" ? "#3B82F6" : "#16A34A",
+                  }}
+                >
+                  {student.type === "online" ? "Online" : "Offline"}
+                </span>
+              </div>
+              {student.type === "offline" && student.address && (
+                <div
+                  style={{
+                    background: "#FFF8FA",
+                    border: "1px solid #F4D8DE",
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    overflow: "hidden",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "#C4A0A8", flexShrink: 0 }}>
+                    🏠
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#5C3040",
+                      fontWeight: 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {student.address}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Link to bill */}
-        <Link
-          href={`/bills/${selected.bill.id}`}
-          style={{
-            display: "block",
-            marginTop: 16,
-            textAlign: "center",
-            padding: "11px 0",
-            background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
-            borderRadius: 12,
-            color: "white",
-            fontWeight: 700,
-            fontSize: 13,
-            textDecoration: "none",
-          }}
-        >
-          Xem hóa đơn
-        </Link>
+            {/* Notes */}
+            {selected.notes && (
+              <div
+                style={{
+                  marginTop: 10,
+                  background: "#FFF8FA",
+                  border: "1px solid #F4D8DE",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                }}
+              >
+                <div style={{ ...fieldLabel, marginBottom: 4 }}>Ghi chú</div>
+                <div style={{ fontSize: 13, color: "#5C3040", lineHeight: 1.5 }}>
+                  {selected.notes}
+                </div>
+              </div>
+            )}
+
+            {/* Link to bill */}
+            <Link
+              href={`/bills/${selected.bill.id}`}
+              style={{
+                display: "block",
+                marginTop: 14,
+                textAlign: "center",
+                padding: "11px 0",
+                background: "linear-gradient(135deg,#E8788A,#F0A0B0)",
+                borderRadius: 12,
+                color: "white",
+                fontWeight: 700,
+                fontSize: 13,
+                textDecoration: "none",
+              }}
+            >
+              Xem hóa đơn
+            </Link>
+          </>
+        )}
       </>
     );
   };
@@ -782,21 +961,64 @@ export default function CalendarClient() {
       {/* Session detail modal — bottom sheet on mobile, centered dialog on desktop */}
       <Dialog
         open={!!selected}
-        onOpenChange={(open) => !open && setSelected(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelected(null);
+            setIsEditing(false);
+          }
+        }}
       >
-        <DialogContent>
+        <DialogContent hideCloseButton>
           {/* Header */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 24,
+              marginBottom: 20,
             }}
           >
             <span style={{ fontWeight: 700, fontSize: 16, color: "#2C1820" }}>
-              Chi tiết buổi học
+              {isEditing ? "Chỉnh sửa buổi học" : "Chi tiết buổi học"}
             </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {!isEditing && (
+                <button
+                  onClick={handleEdit}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    background: "#FFF8FA",
+                    border: "1px solid #F4D8DE",
+                    borderRadius: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "#A87888",
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
+              <DialogClose
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: "#FFF8FA",
+                  border: "1px solid #F4D8DE",
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "#A87888",
+                  flexShrink: 0,
+                }}
+              >
+                <X size={14} />
+              </DialogClose>
+            </div>
           </div>
           {renderSessionDetail()}
         </DialogContent>
