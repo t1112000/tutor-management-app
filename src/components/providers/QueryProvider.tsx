@@ -1,13 +1,12 @@
 'use client'
 
-import { dehydrate, hydrate, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { QueryClient } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { useState } from 'react'
 import {
-  clearPersistedQueryCache,
-  QUERY_CACHE_BUSTER,
   QUERY_CACHE_MAX_AGE,
-  readPersistedQueryCache,
-  writePersistedQueryCache,
+  QUERY_CACHE_BUSTER,
+  queryCachePersister,
 } from '@/lib/query-cache-persistence'
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
@@ -27,53 +26,19 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       }),
   )
 
-  useEffect(() => {
-    let alive = true;
-
-    void (async () => {
-      const persisted = await readPersistedQueryCache();
-      if (!alive || !persisted) return;
-
-      const isFresh = Date.now() - persisted.timestamp < QUERY_CACHE_MAX_AGE;
-      if (persisted.buster === QUERY_CACHE_BUSTER && isFresh) {
-        hydrate(client, persisted.state);
-      } else {
-        await clearPersistedQueryCache();
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [client]);
-
-  useEffect(() => {
-    let persistTimer: number | undefined;
-
-    const persistNow = () => {
-      void writePersistedQueryCache(dehydrate(client));
-    };
-
-    const schedulePersist = () => {
-      if (persistTimer) window.clearTimeout(persistTimer);
-      persistTimer = window.setTimeout(persistNow, 250);
-    };
-
-    schedulePersist();
-    const unsubscribe = client.getQueryCache().subscribe(schedulePersist);
-
-    const handlePageHide = () => {
-      persistNow();
-    };
-
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      if (persistTimer) window.clearTimeout(persistTimer);
-      unsubscribe();
-      window.removeEventListener('pagehide', handlePageHide);
-    };
-  }, [client]);
-
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  return (
+    <PersistQueryClientProvider
+      client={client}
+      persistOptions={{
+        persister: queryCachePersister,
+        buster: QUERY_CACHE_BUSTER,
+        maxAge: QUERY_CACHE_MAX_AGE,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => query.state.status === 'success',
+        },
+      }}
+    >
+      {children}
+    </PersistQueryClientProvider>
+  )
 }
