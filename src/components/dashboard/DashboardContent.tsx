@@ -33,6 +33,82 @@ function getWeekStart() {
   return new Date(new Date(d).setDate(diff)).toISOString().slice(0, 10);
 }
 
+function DashboardLoadingView({ isMobile }: { isMobile: boolean }) {
+  const card = "rounded-[12px] border border-[#F4D8DE] bg-white";
+
+  return (
+    <div className="flex h-full flex-col overflow-auto">
+      <div
+        style={{
+          height: "64px",
+          padding: isMobile ? "0 16px" : "0 32px",
+          display: "flex",
+          alignItems: "center",
+          borderBottom: "1px solid #F4D8DE",
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="animate-pulse" style={{ height: 28, width: 160, borderRadius: 9999, background: "#F4D8DE" }} />
+          <div className="animate-pulse" style={{ height: 18, width: 140, borderRadius: 9999, background: "#F4D8DE" }} />
+        </div>
+      </div>
+
+      <div style={{ padding: isMobile ? "16px" : "24px 32px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
+          {[
+            ["w-10", "w-24"],
+            ["w-10", "w-28"],
+            ["w-10", "w-24"],
+          ].map(([iconW, labelW], idx) => (
+            <div key={idx} className={card} style={{ padding: "20px 22px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                <div className="animate-pulse" style={{ width: 34, height: 34, borderRadius: 8, background: idx === 0 ? "#FFE8EC" : idx === 1 ? "#FFF3CC" : "#D6F5E3" }} />
+                <div className={`animate-pulse ${labelW}`} style={{ height: 12, borderRadius: 9999, background: "#F4D8DE" }} />
+              </div>
+              <div className="animate-pulse" style={{ height: idx === 2 ? 10 : 14, width: idx === 2 ? 70 : 96, borderRadius: 9999, background: idx === 0 ? "#C45870" : idx === 1 ? "#b45309" : "#1a8a3c", opacity: 0.55, marginTop: 24 }} />
+              <div className="animate-pulse" style={{ height: 12, width: "70%", borderRadius: 9999, background: "#F4D8DE", marginTop: 24 }} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: "20px" }}>
+          <div className={card} style={{ overflow: "hidden" }}>
+            <div style={{ padding: "15px 20px", borderBottom: "1px solid #F4D8DE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div className="animate-pulse" style={{ height: 16, width: 130, borderRadius: 9999, background: "#F4D8DE" }} />
+              <div className="animate-pulse" style={{ height: 14, width: 74, borderRadius: 9999, background: "#F4D8DE" }} />
+            </div>
+            <div style={{ padding: "20px", minHeight: isMobile ? 180 : 340 }}>
+              <div className="animate-pulse" style={{ height: 18, width: 90, borderRadius: 9999, background: "#F4D8DE" }} />
+              <div className="mt-4 space-y-3">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <div key={i} className="animate-pulse" style={{ height: 38, borderRadius: 12, background: "#FFF8FA", border: "1px solid #F4D8DE" }} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div className="animate-pulse" style={{ height: 12, width: 120, borderRadius: 9999, background: "#F4D8DE", marginBottom: 4 }} />
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className={card} style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: "12px", textDecoration: "none" }}>
+                <div className="animate-pulse" style={{ width: 36, height: 36, borderRadius: 8, background: i === 0 ? "#E0EEFF" : i === 1 ? "#D6F5E3" : "#FFE5E8" }} />
+                <div style={{ flex: 1 }}>
+                  <div className="animate-pulse" style={{ height: 12, width: "65%", borderRadius: 9999, background: "#F4D8DE" }} />
+                  <div className="animate-pulse mt-2" style={{ height: 10, width: "80%", borderRadius: 9999, background: "#F4D8DE" }} />
+                </div>
+                <div className="animate-pulse" style={{ width: 14, height: 14, borderRadius: 9999, background: "#F4D8DE" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardContent({ userId }: { userId: number }) {
   const isMobile = useIsMobile();
 
@@ -57,6 +133,10 @@ export default function DashboardContent({ userId }: { userId: number }) {
   const unpaidTotal     = report?.unpaid ?? 0;
   const todaySessions   = (sessions ?? []).filter((s) => s.scheduledDate === today);
   const weekSessionCount = sessions?.length ?? 0;
+
+  if (loading) {
+    return <DashboardLoadingView isMobile={isMobile} />;
+  }
 
   const chevron = (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9098a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>

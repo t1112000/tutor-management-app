@@ -6,6 +6,68 @@ import { formatMoneyVND } from "@/lib/time";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useReport } from "@/hooks/queries/use-report";
 
+function ReportLoadingView({ isMobile }: { isMobile: boolean }) {
+  return (
+    <div className="flex h-full flex-col overflow-auto">
+      <div
+        style={{
+          height: "64px",
+          padding: isMobile ? "0 16px" : "0 32px",
+          display: "flex",
+          alignItems: "center",
+          borderBottom: "1px solid #F4D8DE",
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div className="animate-pulse" style={{ height: 28, width: 180, borderRadius: 9999, background: "#F4D8DE" }} />
+          <div className="animate-pulse" style={{ height: 40, width: isMobile ? 120 : 260, borderRadius: 12, background: "#F4D8DE" }} />
+        </div>
+      </div>
+
+      <div style={{ padding: isMobile ? "16px" : "24px 32px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: "16px", marginBottom: "24px" }}>
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "20px 22px" }}>
+              <div className="animate-pulse" style={{ height: 12, width: 88, borderRadius: 9999, background: "#F4D8DE", marginBottom: 18 }} />
+              <div className="animate-pulse" style={{ height: 24, width: i === 2 ? 86 : 110, borderRadius: 9999, background: i === 0 ? "#D6F5E3" : i === 1 ? "#FFF3CC" : "#F4D8DE" }} />
+              <div className="animate-pulse" style={{ height: 3, width: "100%", borderRadius: 9999, background: "#F4D8DE", marginTop: 16 }} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid #F4D8DE" }}>
+            <div className="animate-pulse" style={{ height: 16, width: 180, borderRadius: 9999, background: "#F4D8DE" }} />
+          </div>
+          <div style={{ padding: "12px 14px" }}>
+            <div style={{ overflow: "hidden", borderRadius: 12, border: "1px solid #F4D8DE" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr 1fr 1fr", background: "#FFF8FA" }}>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <div key={i} style={{ padding: "12px 14px", borderRight: i === 4 ? "none" : "1px solid #F4D8DE" }}>
+                    <div className="animate-pulse" style={{ height: 12, width: i === 0 ? 70 : 54, borderRadius: 9999, background: "#F4D8DE" }} />
+                  </div>
+                ))}
+              </div>
+              {Array.from({ length: 4 }, (_, row) => (
+                <div key={row} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr 1fr 1fr", borderTop: "1px solid #F4D8DE" }}>
+                  {Array.from({ length: 5 }, (_, col) => (
+                    <div key={col} style={{ padding: "18px 14px", borderRight: col === 4 ? "none" : "1px solid #F4D8DE" }}>
+                      <div className="animate-pulse" style={{ height: 12, width: col === 0 ? "80%" : "60%", borderRadius: 9999, background: "#F4D8DE" }} />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportClient() {
   const isMobile = useIsMobile();
   const [month, setMonth] = useState(() => {
@@ -28,6 +90,10 @@ export default function ReportClient() {
   const unpaid = report?.unpaid ?? 0;
   const paidPct = total > 0 ? `${Math.round((paid / total) * 100)}%` : "0%";
   const unpaidPct = total > 0 ? `${Math.round((unpaid / total) * 100)}%` : "0%";
+
+  if (loading) {
+    return <ReportLoadingView isMobile={isMobile} />;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-auto">
@@ -100,9 +166,7 @@ export default function ReportClient() {
           </div>
           {isMobile ? (
             <div style={{ padding: "12px 14px" }}>
-              {loading ? (
-                <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</div>
-              ) : !report?.students.length ? (
+              {!report?.students.length ? (
                 <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Không có dữ liệu</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -147,9 +211,7 @@ export default function ReportClient() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</td></tr>
-                ) : !report?.students.length ? (
+                {!report?.students.length ? (
                   <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Không có dữ liệu</td></tr>
                 ) : report.students.map((s) => (
                   <tr key={s.studentId} style={{ borderTop: "1px solid #F4D8DE" }}>

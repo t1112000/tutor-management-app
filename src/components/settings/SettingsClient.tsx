@@ -6,6 +6,9 @@ import { signOut } from "next-auth/react";
 import { Switch } from "@/components/ui/switch";
 import useIsMobile from "@/hooks/use-is-mobile";
 
+const SIGN_IN_URL =
+  process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/signin` : "https://tutor.neyut.dev/signin";
+
 interface Props {
   userEmail: string;
   userName: string | null;
@@ -218,7 +221,7 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
         {/* Sign out */}
         <div style={cardStyle}>
           <button
-            onClick={() => signOut({ callbackUrl: `${window.location.origin}/signin` })}
+            onClick={() => signOut({ callbackUrl: SIGN_IN_URL })}
             style={{
               width: "100%",
               background: "#FFF8FA",

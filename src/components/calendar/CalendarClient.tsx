@@ -74,6 +74,135 @@ function formatDayMonth(dateStr: string) {
   return `${day}/${month}`;
 }
 
+function CalendarLoadingView({ isMobile }: { isMobile: boolean }) {
+  const headerStyle: React.CSSProperties = {
+    height: "64px",
+    padding: isMobile ? "0 16px" : "0 32px",
+    display: "flex",
+    alignItems: "center",
+    borderBottom: "1px solid #F4D8DE",
+    background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(12px)",
+    flexShrink: 0,
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+      <div style={headerStyle}>
+        <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div className="animate-pulse" style={{ height: 28, width: 120, borderRadius: 9999, background: "#F4D8DE" }} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="animate-pulse" style={{ width: 32, height: 32, borderRadius: 8, background: "#F4D8DE" }} />
+            <div className="animate-pulse" style={{ width: isMobile ? 120 : 160, height: 18, borderRadius: 9999, background: "#F4D8DE" }} />
+            <div className="animate-pulse" style={{ width: 32, height: 32, borderRadius: 8, background: "#F4D8DE" }} />
+          </div>
+        </div>
+      </div>
+
+      {isMobile ? (
+        <div style={{ flex: 1, overflow: "hidden", padding: "12px 16px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", gap: 4, padding: "8px 0 10px" }}>
+            {Array.from({ length: 7 }, (_, i) => (
+              <div
+                key={i}
+                className="animate-pulse"
+                style={{
+                  flex: 1,
+                  height: 88,
+                  borderRadius: 12,
+                  background: "rgba(244,216,222,0.55)",
+                  border: "1px solid rgba(244,216,222,0.9)",
+                }}
+              />
+            ))}
+          </div>
+
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <div
+                key={i}
+                className="animate-pulse"
+                style={{
+                  height: i === 0 ? 104 : 86,
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,0.82)",
+                  border: "1px solid rgba(244,216,222,0.95)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflow: "hidden", padding: "20px 32px 32px" }}>
+          <div
+            className="animate-pulse"
+            style={{
+              height: "100%",
+              minHeight: 620,
+              borderRadius: 12,
+              border: "1px solid #F4D8DE",
+              background:
+                "linear-gradient(180deg, rgba(255,248,250,0.92), rgba(255,255,255,0.94))",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{ display: "flex", borderBottom: "1px solid #F4D8DE", background: "#FFF8FA" }}>
+              <div style={{ width: 56, flexShrink: 0, borderRight: "1px solid #F4D8DE" }} />
+              {Array.from({ length: 7 }, (_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    minHeight: 94,
+                    borderRight: i === 6 ? "none" : "1px solid #F4D8DE",
+                  }}
+                />
+              ))}
+            </div>
+
+            <div style={{ display: "flex" }}>
+              <div
+                style={{
+                  width: 56,
+                  flexShrink: 0,
+                  borderRight: "1px solid #F4D8DE",
+                  minHeight: 660,
+                }}
+              >
+                {Array.from({ length: 14 }, (_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      height: 40,
+                      paddingTop: i === 0 ? 6 : 0,
+                      paddingRight: 8,
+                      textAlign: "right",
+                      color: "transparent",
+                    }}
+                  >
+                    {7 + i}:00
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 660,
+                  backgroundImage:
+                    "repeating-linear-gradient(to bottom, rgba(244,216,222,0.95) 0px, rgba(244,216,222,0.95) 1px, transparent 1px, transparent 40px)",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CalendarClient() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -199,6 +328,10 @@ export default function CalendarClient() {
     alignItems: "center",
     justifyContent: "center",
   };
+
+  if (loading) {
+    return <CalendarLoadingView isMobile={isMobile} />;
+  }
 
   // Session detail modal content
   const renderSessionDetail = () => {
@@ -661,18 +794,7 @@ export default function CalendarClient() {
               gap: "10px",
             }}
           >
-            {loading ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: "#A87888",
-                  fontSize: "13px",
-                  paddingTop: "32px",
-                }}
-              >
-                Đang tải...
-              </div>
-            ) : sessionsForSelectedDay.length === 0 ? (
+            {sessionsForSelectedDay.length === 0 ? (
               <div
                 style={{
                   textAlign: "center",
