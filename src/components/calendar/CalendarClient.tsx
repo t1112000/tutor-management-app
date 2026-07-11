@@ -9,11 +9,12 @@ import { weekStartStr, addDaysStr, formatWeekRangeVN } from "@/lib/time";
 import { findColor, hashColor } from "@/lib/student-colors";
 import { keys } from "@/lib/query-keys";
 import useIsMobile from "@/hooks/use-is-mobile";
-import { useCalendar } from "@/hooks/queries/use-calendar";
+import { useCalendar, useFixedCalendar } from "@/hooks/queries/use-calendar";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
 interface Session {
   id: number;
@@ -51,6 +52,7 @@ function pt(t: string): number {
 
 const DAY_NAMES = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const VN_DAY_NAMES_SHORT = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const DAY_VALUES = [1, 2, 3, 4, 5, 6, 0];
 
 const SUBJECT_LABEL: Record<string, string> = {
   english: "Tiếng Anh",
@@ -209,7 +211,14 @@ export default function CalendarClient() {
   const [weekStart, setWeekStart] = useState(() =>
     weekStartStr(new Date().toISOString().slice(0, 10)),
   );
-  const { data: sessions = [], isLoading: loading } = useCalendar(weekStart);
+  const [showFixedSchedule, setShowFixedSchedule] = useState(false);
+  const { data: sessions = [], isLoading: sessionsLoading } = useCalendar(
+    weekStart,
+    !showFixedSchedule,
+  );
+  const { data: fixedSessions = [], isLoading: fixedSessionsLoading } =
+    useFixedCalendar(showFixedSchedule);
+  const loading = showFixedSchedule ? fixedSessionsLoading : sessionsLoading;
   const [selected, setSelected] = useState<Session | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -277,9 +286,10 @@ export default function CalendarClient() {
   });
 
   // Dynamic grid height: end 1 hour after the latest session, minimum 20:00
+  const displayedSessions = showFixedSchedule ? fixedSessions : sessions;
   const latestEndHour =
-    sessions.length > 0
-      ? Math.max(...sessions.map((s) => Math.ceil(pt(s.endTime) / 60)))
+    displayedSessions.length > 0
+      ? Math.max(...displayedSessions.map((s) => Math.ceil(pt(s.endTime) / 60)))
       : GRID_S + GRID_HOURS;
   const gridEndHour = Math.max(latestEndHour + 1, GRID_S + 6);
   const dynamicHours = gridEndHour - GRID_S;
@@ -303,6 +313,24 @@ export default function CalendarClient() {
   const sessionsForSelectedDay = sessions.filter(
     (s) => s.scheduledDate === selectedDayStr,
   );
+  const fixedSessionsForSelectedDay = fixedSessions.filter(
+    (s) => s.dayOfWeek === DAY_VALUES[selectedDayIndex],
+  );
+  const calendarColumns = showFixedSchedule
+    ? DAY_VALUES.map((dayOfWeek, index) => ({
+        key: `fixed-${dayOfWeek}`,
+        dayOfWeek,
+        label: DAY_NAMES[index],
+        date: null,
+        isToday: false,
+      }))
+    : days.map((date, index) => ({
+        key: date,
+        dayOfWeek: null,
+        label: DAY_NAMES[index],
+        date,
+        isToday: date === today,
+      }));
 
   const fieldLabel: React.CSSProperties = {
     fontSize: 11,
@@ -658,63 +686,79 @@ export default function CalendarClient() {
             justifyContent: "space-between",
           }}
         >
-          <h1
-            style={{
-              fontSize: "22px",
-              fontWeight: 600,
-              color: "#2C1820",
-              letterSpacing: "-0.5px",
-              margin: 0,
-            }}
-          >
-            Lịch dạy
-          </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <button
-              onClick={() => setWeekStart((ws) => addDaysStr(ws, -7))}
-              style={navBtnStyle}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#62666d"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <span
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <h1
               style={{
-                fontSize: "13px",
-                fontWeight: 500,
+                fontSize: "22px",
+                fontWeight: 600,
                 color: "#2C1820",
-                minWidth: isMobile ? "120px" : "160px",
-                textAlign: "center",
+                letterSpacing: "-0.5px",
+                margin: 0,
               }}
             >
-              {formatWeekRangeVN(weekStart)}
-            </span>
-            <button
-              onClick={() => setWeekStart((ws) => addDaysStr(ws, 7))}
-              style={navBtnStyle}
+              Lịch dạy
+            </h1>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                color: showFixedSchedule ? "#C45870" : "#A87888",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#62666d"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <Switch
+                checked={showFixedSchedule}
+                onCheckedChange={setShowFixedSchedule}
+                aria-label="Hiển thị lịch dạy cố định"
+              />
+              <span className={isMobile ? "sr-only" : undefined}>Lịch cố định</span>
+            </label>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {showFixedSchedule ? (
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#C45870",
+                  background: "#FFF0F3",
+                  border: "1px solid #F4D8DE",
+                  borderRadius: 9999,
+                  padding: "6px 10px",
+                  whiteSpace: "nowrap",
+                }}
               >
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
+                Hàng tuần
+              </span>
+            ) : (
+              <>
+                <button onClick={() => setWeekStart((ws) => addDaysStr(ws, -7))} style={navBtnStyle}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#62666d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "#2C1820",
+                    minWidth: isMobile ? "120px" : "160px",
+                    textAlign: "center",
+                  }}
+                >
+                  {formatWeekRangeVN(weekStart)}
+                </span>
+                <button onClick={() => setWeekStart((ws) => addDaysStr(ws, 7))} style={navBtnStyle}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#62666d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -760,15 +804,17 @@ export default function CalendarClient() {
                   <span style={{ fontSize: "11px" }}>
                     {VN_DAY_NAMES_SHORT[i]}
                   </span>
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: isSelected ? 700 : 500,
-                    }}
-                  >
-                    {new Date(day + "T00:00:00").getDate()}
-                  </span>
-                  {isToday && (
+                  {!showFixedSchedule && (
+                    <span
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: isSelected ? 700 : 500,
+                      }}
+                    >
+                      {new Date(day + "T00:00:00").getDate()}
+                    </span>
+                  )}
+                  {!showFixedSchedule && isToday && (
                     <div
                       style={{
                         width: "4px",
@@ -794,7 +840,49 @@ export default function CalendarClient() {
               gap: "10px",
             }}
           >
-            {sessionsForSelectedDay.length === 0 ? (
+            {showFixedSchedule ? (
+              fixedSessionsForSelectedDay.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    color: "#A87888",
+                    fontSize: "13px",
+                    paddingTop: "32px",
+                  }}
+                >
+                  Không có lịch dạy cố định
+                </div>
+              ) : (
+                fixedSessionsForSelectedDay.map((session) => {
+                  const color = getColor(session.student);
+                  return (
+                    <Link
+                      key={session.id}
+                      href={`/students/${session.student.id}`}
+                      style={{
+                        background: "white",
+                        border: "1px solid #F4D8DE",
+                        borderRadius: "12px",
+                        padding: "14px 16px",
+                        cursor: "pointer",
+                        borderLeft: `4px solid ${color.hex}`,
+                        textDecoration: "none",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: "14px", color: "#2C1820" }}>
+                        {session.student.name}
+                      </div>
+                      <div style={{ fontSize: "13px", color: "#A87888", marginTop: "3px", fontFamily: "monospace" }}>
+                        {session.startTime} – {session.endTime}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#C45870", marginTop: 7, fontWeight: 600 }}>
+                        Xem và sửa tại hồ sơ học sinh →
+                      </div>
+                    </Link>
+                  );
+                })
+              )
+            ) : sessionsForSelectedDay.length === 0 ? (
               <div
                 style={{
                   textAlign: "center",
@@ -877,12 +965,13 @@ export default function CalendarClient() {
                 borderRight: "1px solid #F4D8DE",
               }}
             />
-            {days.map((d, i) => {
-              const isToday = d === today;
-              const dateStr = d.slice(8) + "-" + d.slice(5, 7);
+            {calendarColumns.map((column) => {
+              const dateStr = column.date
+                ? column.date.slice(8) + "-" + column.date.slice(5, 7)
+                : null;
               return (
                 <div
-                  key={d}
+                  key={column.key}
                   style={{
                     flex: 1,
                     padding: "10px 0",
@@ -899,33 +988,35 @@ export default function CalendarClient() {
                       letterSpacing: "0.4px",
                     }}
                   >
-                    {DAY_NAMES[i]}
+                    {column.label}
                   </div>
-                  <div
-                    style={
-                      isToday
-                        ? {
-                            display: "inline-block",
-                            marginTop: "4px",
-                            background: "#E8788A",
-                            color: "white",
-                            borderRadius: "9999px",
-                            padding: "2px 9px",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            boxShadow: "0 2px 8px rgba(232,120,138,0.45)",
-                          }
-                        : {
-                            display: "inline-block",
-                            marginTop: "4px",
-                            color: "#A87888",
-                            padding: "2px 8px",
-                            fontSize: "12px",
-                          }
-                    }
-                  >
-                    {dateStr}
-                  </div>
+                  {dateStr && (
+                    <div
+                      style={
+                        column.isToday
+                          ? {
+                              display: "inline-block",
+                              marginTop: "4px",
+                              background: "#E8788A",
+                              color: "white",
+                              borderRadius: "9999px",
+                              padding: "2px 9px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              boxShadow: "0 2px 8px rgba(232,120,138,0.45)",
+                            }
+                          : {
+                              display: "inline-block",
+                              marginTop: "4px",
+                              color: "#A87888",
+                              padding: "2px 8px",
+                              fontSize: "12px",
+                            }
+                      }
+                    >
+                      {dateStr}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -977,27 +1068,26 @@ export default function CalendarClient() {
                 backgroundSize: `100% ${HOUR_H}px`,
               }}
             >
-              {days.map((d, i) => {
-                const isToday = d === today;
-                const daySessions = sessions.filter(
-                  (s) => s.scheduledDate === d,
-                );
+              {calendarColumns.map((column) => {
                 return (
                   <div
-                    key={d}
+                    key={column.key}
                     style={{
                       flex: 1,
                       position: "relative",
                       borderRight: "1px solid #F4D8DE",
                       height: `${dynamicGridH}px`,
-                      background: isToday
+                      background: column.isToday
                         ? "rgba(232,120,138,0.04)"
                         : "transparent",
                       transition: "background 300ms ease",
                     }}
                   >
                     {!loading &&
-                      daySessions.map((s) => {
+                      !showFixedSchedule &&
+                      sessions
+                        .filter((s) => s.scheduledDate === column.date)
+                        .map((s) => {
                         const topPx =
                           ((pt(s.startTime) - GRID_S * 60) / 60) * HOUR_H;
                         const color = getColor(s.bill.student);
@@ -1071,7 +1161,80 @@ export default function CalendarClient() {
                             </div>
                           </button>
                         );
-                      })}
+                        })}
+                    {!loading &&
+                      showFixedSchedule &&
+                      fixedSessions
+                        .filter((s) => s.dayOfWeek === column.dayOfWeek)
+                        .map((s) => {
+                          const topPx =
+                            ((pt(s.startTime) - GRID_S * 60) / 60) * HOUR_H;
+                          const color = getColor(s.student);
+                          return (
+                            <Link
+                              key={s.id}
+                              href={`/students/${s.student.id}`}
+                              style={{
+                                position: "absolute",
+                                top: `${topPx}px`,
+                                left: "5px",
+                                right: "5px",
+                                background: color.bg,
+                                borderRadius: "9px",
+                                padding: "6px 9px 7px",
+                                overflow: "hidden",
+                                textAlign: "left",
+                                textDecoration: "none",
+                                boxShadow: `0 4px 14px ${color.shadow}, 0 1px 4px ${color.shadow}`,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height: "3px",
+                                  background: "rgba(255,255,255,0.5)",
+                                  borderRadius: "9px 9px 0 0",
+                                }}
+                              />
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: "rgba(44,24,32,0.85)",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  marginTop: "2px",
+                                }}
+                              >
+                                {s.student.name}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "10px",
+                                  color: "rgba(44,24,32,0.55)",
+                                  marginTop: "1px",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {s.startTime}–{s.endTime}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "9px",
+                                  color: "rgba(44,24,32,0.45)",
+                                  marginTop: "3px",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {s.student.type === "online" ? "🌐 Online" : "📍 Offline"}
+                              </div>
+                            </Link>
+                          );
+                        })}
                   </div>
                 );
               })}

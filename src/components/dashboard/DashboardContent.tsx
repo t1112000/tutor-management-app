@@ -57,18 +57,19 @@ function DashboardLoadingView({ isMobile }: { isMobile: boolean }) {
       </div>
 
       <div style={{ padding: isMobile ? "16px" : "24px 32px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: "16px", marginBottom: "28px" }}>
           {[
             ["w-10", "w-24"],
             ["w-10", "w-28"],
             ["w-10", "w-24"],
+            ["w-10", "w-24"],
           ].map(([iconW, labelW], idx) => (
             <div key={idx} className={card} style={{ padding: "20px 22px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-                <div className="animate-pulse" style={{ width: 34, height: 34, borderRadius: 8, background: idx === 0 ? "#FFE8EC" : idx === 1 ? "#FFF3CC" : "#D6F5E3" }} />
+                <div className="animate-pulse" style={{ width: 34, height: 34, borderRadius: 8, background: idx === 0 ? "#FFE8EC" : idx === 1 ? "#E0EEFF" : idx === 2 ? "#FFF3CC" : "#D6F5E3" }} />
                 <div className={`animate-pulse ${labelW}`} style={{ height: 12, borderRadius: 9999, background: "#F4D8DE" }} />
               </div>
-              <div className="animate-pulse" style={{ height: idx === 2 ? 10 : 14, width: idx === 2 ? 70 : 96, borderRadius: 9999, background: idx === 0 ? "#C45870" : idx === 1 ? "#b45309" : "#1a8a3c", opacity: 0.55, marginTop: 24 }} />
+              <div className="animate-pulse" style={{ height: idx === 2 ? 10 : 14, width: idx === 2 ? 70 : 96, borderRadius: 9999, background: idx === 0 ? "#C45870" : idx === 1 ? "#b45309" : idx === 2 ? "#1a8a3c" : "#2E64C8", opacity: 0.55, marginTop: 24 }} />
               <div className="animate-pulse" style={{ height: 12, width: "70%", borderRadius: 9999, background: "#F4D8DE", marginTop: 24 }} />
             </div>
           ))}
@@ -129,6 +130,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
   const loading = l1 || l2 || l3;
 
   const activeStudents  = students?.length ?? 0;
+  const totalBills      = report?.totalBillCount ?? 0;
   const unpaidBills     = report?.unpaidBillCount ?? 0;
   const unpaidTotal     = report?.unpaid ?? 0;
   const todaySessions   = (sessions ?? []).filter((s) => s.scheduledDate === today);
@@ -157,7 +159,7 @@ export default function DashboardContent({ userId }: { userId: number }) {
       {/* Body */}
       <div style={{ padding: isMobile ? "16px" : "24px 32px" }}>
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4,1fr)", gap: "16px", marginBottom: "28px" }}>
           {/* Students */}
           <div style={cardStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
@@ -168,6 +170,17 @@ export default function DashboardContent({ userId }: { userId: number }) {
             </div>
             <div style={{ fontSize: "38px", fontWeight: 700, color: "#C45870", letterSpacing: "-1.5px", lineHeight: 1 }}>{loading ? "—" : activeStudents}</div>
             <div style={{ fontSize: "12px", color: "#A87888", marginTop: "5px" }}>học sinh hoạt động</div>
+          </div>
+          {/* Total bills */}
+          <div style={cardStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+              <div style={{ width: "34px", height: "34px", background: "#E0EEFF", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2E64C8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="5" y1="15" x2="9" y2="15"/></svg>
+              </div>
+              <span style={{ fontSize: "11px", fontWeight: 500, color: "#A87888", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng hóa đơn</span>
+            </div>
+            <div style={{ fontSize: "38px", fontWeight: 700, color: "#2E64C8", letterSpacing: "-1.5px", lineHeight: 1 }}>{totalBills}</div>
+            <div style={{ fontSize: "12px", color: "#A87888", marginTop: "5px" }}>tất cả hóa đơn</div>
           </div>
           {/* Bills */}
           <div style={cardStyle}>

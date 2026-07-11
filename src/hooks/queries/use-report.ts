@@ -15,6 +15,7 @@ export interface Report {
   month: string
   paid: number
   unpaid: number
+  totalBillCount: number
   unpaidBillCount: number
   total: number
   students: StudentReport[]
@@ -23,8 +24,10 @@ export interface Report {
 export function useReport(month: string) {
   return useQuery({
     queryKey: keys.report.month(month),
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async () => {
-      const res = await fetch(`/api/report?month=${month}`)
+      const res = await fetch(`/api/report?month=${month}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(await res.text())
       return res.json() as Promise<Report>
     },

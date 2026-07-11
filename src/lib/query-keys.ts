@@ -9,6 +9,7 @@ export const keys = {
   },
   calendar: {
     week: (weekStart: string) => ['calendar', weekStart] as const,
+    fixed: () => ['calendar', 'fixed'] as const,
   },
   report: {
     month: (month: string) => ['report', month] as const,

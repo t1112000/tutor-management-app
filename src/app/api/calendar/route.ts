@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       {
         model: Bill,
         as: "bill",
-        where: { deletedAt: null },
+        where: { deletedAt: null, createdBy: user!.id },
         required: true,
         include: [{ model: Student, as: "student" }],
       },
@@ -29,5 +29,7 @@ export async function GET(req: NextRequest) {
     order: [["scheduledDate", "ASC"], ["startTime", "ASC"]],
   });
 
-  return NextResponse.json(sessions);
+  return NextResponse.json(sessions, {
+    headers: { "Cache-Control": "private, no-store, max-age=0" },
+  });
 }

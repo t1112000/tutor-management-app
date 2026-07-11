@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
         model: BillSession,
         as: "sessions",
         where: { scheduledDate: { [Op.between]: [monthStart, monthEnd] } },
-        required: false,
+        // A report for a month must exclude invoices without any session in it.
+        // `required: false` produces a LEFT JOIN and returns every invoice.
+        required: true,
       },
     ],
   });
@@ -60,6 +62,7 @@ export async function GET(req: NextRequest) {
     month: monthParam,
     paid,
     unpaid,
+    totalBillCount: bills.length,
     unpaidBillCount,
     total: paid + unpaid,
     students: Object.values(byStudent),
