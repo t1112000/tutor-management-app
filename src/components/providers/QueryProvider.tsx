@@ -15,11 +15,17 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000,
-            gcTime: 30 * 60 * 1000,
-            refetchOnWindowFocus: false,
-            refetchOnReconnect: false,
-            refetchOnMount: false,
+            // Stale-while-revalidate: the persisted cache paints instantly, then
+            // every mount/focus/reconnect refreshes. With refetch-on-* disabled,
+            // a second device (or a reload restoring the 24h cache) could show
+            // stale billing data indefinitely.
+            staleTime: 60 * 1000,
+            // Must be >= the persisted maxAge, or restored entries are dropped
+            // straight away and the persistence buys nothing.
+            gcTime: 24 * 60 * 60 * 1000,
+            refetchOnWindowFocus: true,
+            refetchOnReconnect: true,
+            refetchOnMount: true,
             retry: 1,
           },
         },
@@ -34,7 +40,13 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         buster: QUERY_CACHE_BUSTER,
         maxAge: QUERY_CACHE_MAX_AGE,
         dehydrateOptions: {
-          shouldDehydrateQuery: (query) => query.state.status === 'success',
+          shouldDehydrateQuery: (query) => {
+            if (query.state.status !== 'success') return false
+            // Don't persist every keystroke of the student search: each debounced
+            // term becomes its own cache entry and is pure dead weight on disk.
+            const [scope, kind, term] = query.queryKey as [string, string, string]
+            return !(scope === 'students' && kind === 'list' && !!term)
+          },
         },
       }}
     >

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { keys } from '@/lib/query-keys'
+import { api } from '@/lib/api-client'
 
 interface StudentReport {
   studentId: number
@@ -26,10 +27,6 @@ export function useReport(month: string) {
     queryKey: keys.report.month(month),
     staleTime: 0,
     refetchOnMount: 'always',
-    queryFn: async () => {
-      const res = await fetch(`/api/report?month=${month}`, { cache: 'no-store' })
-      if (!res.ok) throw new Error(await res.text())
-      return res.json() as Promise<Report>
-    },
+    queryFn: () => api<Report>(`/api/report?month=${month}`),
   })
 }

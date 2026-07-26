@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth-helpers";
-import { Student, StudentSchedule } from "@/lib/db/index";
-import { scheduleSchema } from "@/lib/validations";
-import { z } from "zod";
+import { requireUser, parseBody, jsonError, findOwnedStudent } from "@/lib/auth-helpers";
+import { StudentSchedule } from "@/lib/db/index";
+import { scheduleSchema, scheduleUpdateSchema, scheduleDeleteSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,10 +11,10 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id) } });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const student = await findOwnedStudent(user.id, id);
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  const schedules = await StudentSchedule.findAll({ where: { studentId: Number(id) } });
+  const schedules = await StudentSchedule.findAll({ where: { studentId: student.id } });
   return NextResponse.json(schedules);
 }
 
@@ -24,14 +23,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id) } });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const student = await findOwnedStudent(user.id, id);
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  const body = await req.json();
-  const parsed = scheduleSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const { value, response: badBody } = await parseBody(req, scheduleSchema);
+  if (badBody) return badBody;
 
-  const schedule = await StudentSchedule.create({ ...parsed.data, studentId: Number(id) });
+  const schedule = await StudentSchedule.create({ ...value, studentId: student.id });
   return NextResponse.json(schedule, { status: 201 });
 }
 
@@ -40,14 +38,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id) } });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const student = await findOwnedStudent(user.id, id);
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  const { scheduleId, startTime, endTime } = await req.json();
-  const schedule = await StudentSchedule.findOne({ where: { id: scheduleId, studentId: Number(id) } });
-  if (!schedule) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { value, response: badBody } = await parseBody(req, scheduleUpdateSchema);
+  if (badBody) return badBody;
 
-  await schedule.update({ startTime, endTime });
+  const schedule = await StudentSchedule.findOne({
+    where: { id: value.scheduleId, studentId: student.id },
+  });
+  if (!schedule) return jsonError(404, "Không tìm thấy lịch học");
+
+  await schedule.update({ startTime: value.startTime, endTime: value.endTime });
   return NextResponse.json(schedule);
 }
 
@@ -56,10 +58,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id) } });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const student = await findOwnedStudent(user.id, id);
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  const { scheduleId } = await req.json();
-  await StudentSchedule.destroy({ where: { id: scheduleId, studentId: Number(id) } });
+  const { value, response: badBody } = await parseBody(req, scheduleDeleteSchema);
+  if (badBody) return badBody;
+
+  await StudentSchedule.destroy({ where: { id: value.scheduleId, studentId: student.id } });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth-helpers";
-import { Student, StudentSchedule, Bill, BillSession } from "@/lib/db/index";
+import { requireUser, parseBody, jsonError, findOwnedStudent } from "@/lib/auth-helpers";
+import { StudentSchedule, Bill, BillSession } from "@/lib/db/index";
 import { studentSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
@@ -11,8 +11,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({
-    where: { id: Number(id) },
+  const student = await findOwnedStudent(user.id, id, {
     include: [
       { model: StudentSchedule, as: "schedules" },
       {
@@ -21,11 +20,13 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
         where: { deletedAt: null },
         required: false,
         include: [{ model: BillSession, as: "sessions" }],
-        order: [["createdAt", "DESC"]] as any,
       },
     ],
+    // `order` inside an include is silently ignored by Sequelize unless the
+    // include is `separate: true`, so it has to be declared at the top level.
+    order: [[{ model: Bill, as: "bills" }, "createdAt", "DESC"]],
   });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
   return NextResponse.json(student);
 }
 
@@ -34,14 +35,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id) } });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const student = await findOwnedStudent(user.id, id);
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  const body = await req.json();
-  const parsed = studentSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const { value, response: badBody } = await parseBody(req, studentSchema);
+  if (badBody) return badBody;
 
-  await student.update(parsed.data);
+  await student.update(value);
   return NextResponse.json(student);
 }
 
@@ -50,16 +50,12 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (response) return response;
   const { id } = await params;
 
-  const student = await Student.findOne({ where: { id: Number(id) } });
-  if (!student) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const student = await findOwnedStudent(user.id, id);
+  if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  // Destroy all bills (including soft-deleted) and their sessions
-  const allBills = await Bill.findAll({ where: { studentId: student.id } });
-  for (const bill of allBills) {
-    await BillSession.destroy({ where: { billId: bill.id } });
-    await bill.destroy();
-  }
-  await StudentSchedule.destroy({ where: { studentId: student.id } });
-  await student.destroy();
+  // Soft delete. This used to hard-destroy every invoice (including already
+  // soft-deleted ones) and every session in a loop with no transaction, which
+  // permanently erased paid financial records with no way back.
+  await student.update({ deletedAt: new Date() });
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@ import type { PersistedClient, Persister } from '@tanstack/react-query-persist-c
 import { createStore, del, get, set } from 'idb-keyval'
 
 export const QUERY_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
-export const QUERY_CACHE_BUSTER = 'v4'
+export const QUERY_CACHE_BUSTER = 'v5'
 
 const QUERY_CACHE_KEY = 'react-query-cache'
 const queryCacheStore = createStore('myclass-query-cache', 'query-cache')

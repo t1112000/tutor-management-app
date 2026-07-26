@@ -22,6 +22,7 @@ export class Student extends Model<
   declare createdBy: ForeignKey<User["id"]>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: CreationOptional<Date | null>;
   declare creator?: NonAttribute<User>;
 }
 
@@ -46,6 +47,7 @@ export function initStudent(sequelize: Sequelize) {
       createdBy: { type: DataTypes.INTEGER, allowNull: false },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
+      deletedAt: { type: DataTypes.DATE, allowNull: true },
     },
     { sequelize, tableName: "students" }
   );

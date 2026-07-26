@@ -6,6 +6,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { toast } from "sonner";
 import { Calendar, Clock, Plus, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { QueryErrorState } from "@/components/ui/query-error";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -15,9 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatMoneyVND } from "@/lib/time";
 import {
-  useBill, useUpdateSession, usePayBill, useDeleteBill,
+  useBill, useUpdateSession, usePayBill, useUnpayBill, useDeleteBill,
   useUpdateBill, useAddSession, useDeleteSession,
-  Bill, BillSession,
 } from "@/hooks/queries/use-bill";
 
 function fmtDate(d: string) {
@@ -99,9 +99,10 @@ function TimeSpinner({
 export default function BillDetailClient({ billId }: { billId: number }) {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const { data: bill } = useBill(billId);
+  const { data: bill, isError: billError, refetch: refetchBill } = useBill(billId);
   const { mutate: updateSessionMutation } = useUpdateSession(billId);
   const { mutate: markPaidMutation, isPending: payLoading } = usePayBill(billId);
+  const { mutate: unpayMutation, isPending: unpayLoading } = useUnpayBill(billId);
   const [timeEdit, setTimeEdit] = useState<{ id: number; start: string; end: string; open: boolean } | null>(null);
   const [editingNotes, setEditingNotes] = useState<{ id: number; value: string } | null>(null);
   const notesRef = useRef<HTMLInputElement>(null);
@@ -137,7 +138,14 @@ export default function BillDetailClient({ billId }: { billId: number }) {
   function markPaid() {
     markPaidMutation(undefined, {
       onSuccess: () => toast.success("Đã đánh dấu thanh toán"),
-      onError: () => toast.error("Thao tác thất bại"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Thao tác thất bại"),
+    });
+  }
+
+  function undoPayment() {
+    unpayMutation(undefined, {
+      onSuccess: () => toast.success("Đã hoàn tác thanh toán"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Thao tác thất bại"),
     });
   }
 
@@ -195,11 +203,20 @@ export default function BillDetailClient({ billId }: { billId: number }) {
     });
   }
 
-  if (!bill) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#A87888" }}>
-      Đang tải...
-    </div>
-  );
+  if (!bill) {
+    if (billError) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+          <QueryErrorState message="Không tải được hóa đơn" onRetry={() => refetchBill()} />
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#A87888" }}>
+        Đang tải...
+      </div>
+    );
+  }
 
   const attended = bill.sessions.filter((s) => s.isAttended).length;
   const totalSessions = bill.sessions.length;
@@ -369,6 +386,36 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                 </button>
               )}
 
+              {/* Undo payment — a mistap used to lock the invoice permanently */}
+              {isPaid && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button style={{
+                      width: "100%", height: 40, borderRadius: 12, cursor: "pointer",
+                      background: "#FFF8FA", border: "1px solid #F4D8DE",
+                      color: "#E8788A", fontWeight: 600, fontSize: 13,
+                    }}>
+                      Hoàn tác thanh toán
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hoàn tác thanh toán?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Hóa đơn {formatMoneyVND(bill.totalAmount)} sẽ quay lại trạng thái chưa
+                        thanh toán và có thể chỉnh sửa lại.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                      <AlertDialogAction onClick={undoPayment} disabled={unpayLoading}>
+                        {unpayLoading ? "Đang xử lý..." : "Hoàn tác"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
               {/* Pay button */}
               {!isPaid && (
                 <AlertDialog>
@@ -391,8 +438,8 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                             Lưu ý: còn {totalSessions - attended} buổi chưa điểm danh.
                           </span>
                         )}
-                        <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
-                          Hành động này không thể hoàn tác.
+                        <span style={{ display: "block", marginTop: 4, color: "#A87888", fontSize: 12 }}>
+                          Bạn có thể hoàn tác sau nếu đánh dấu nhầm.
                         </span>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -625,6 +672,34 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                     {saveLoading ? "Đang lưu..." : "Lưu"}
                   </button>
                 )}
+                {isPaid && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button style={{
+                        padding: "7px 18px", borderRadius: 10, cursor: "pointer",
+                        background: "#FFF8FA", border: "1px solid #F4D8DE",
+                        color: "#E8788A", fontWeight: 600, fontSize: 13,
+                      }}>
+                        Hoàn tác thanh toán
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Hoàn tác thanh toán?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Hóa đơn {formatMoneyVND(bill.totalAmount)} sẽ quay lại trạng thái chưa
+                          thanh toán và có thể chỉnh sửa lại.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction onClick={undoPayment} disabled={unpayLoading}>
+                          {unpayLoading ? "Đang xử lý..." : "Hoàn tác"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
                 {!isPaid && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -646,8 +721,8 @@ export default function BillDetailClient({ billId }: { billId: number }) {
                               Lưu ý: còn {totalSessions - attended} buổi chưa điểm danh.
                             </span>
                           )}
-                          <span style={{ display: "block", marginTop: 4, color: "#E8788A", fontSize: 12 }}>
-                            Hành động này không thể hoàn tác.
+                          <span style={{ display: "block", marginTop: 4, color: "#A87888", fontSize: 12 }}>
+                            Bạn có thể hoàn tác sau nếu đánh dấu nhầm.
                           </span>
                         </AlertDialogDescription>
                       </AlertDialogHeader>

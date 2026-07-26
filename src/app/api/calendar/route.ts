@@ -21,15 +21,47 @@ export async function GET(req: NextRequest) {
       {
         model: Bill,
         as: "bill",
-        where: { deletedAt: null, createdBy: user!.id },
+        where: { deletedAt: null, createdBy: user.id },
         required: true,
-        include: [{ model: Student, as: "student" }],
+        attributes: ["id", "status"],
+        include: [
+          {
+            model: Student,
+            as: "student",
+            where: { deletedAt: null },
+            required: true,
+            attributes: ["id", "name", "subject", "color", "type", "address"],
+          },
+        ],
       },
     ],
     order: [["scheduledDate", "ASC"], ["startTime", "ASC"]],
   });
 
-  return NextResponse.json(sessions, {
+  // Explicit DTO: this endpoint is polled every 60s, and the raw models carry
+  // parent phone numbers and invoice totals the calendar never displays.
+  const slots = sessions.map((s) => ({
+    id: s.id,
+    scheduledDate: s.scheduledDate,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    isAttended: s.isAttended,
+    notes: s.notes,
+    bill: {
+      id: s.bill!.id,
+      status: s.bill!.status,
+      student: {
+        id: s.bill!.student!.id,
+        name: s.bill!.student!.name,
+        subject: s.bill!.student!.subject,
+        color: s.bill!.student!.color,
+        type: s.bill!.student!.type,
+        address: s.bill!.student!.address,
+      },
+    },
+  }));
+
+  return NextResponse.json(slots, {
     headers: { "Cache-Control": "private, no-store, max-age=0" },
   });
 }

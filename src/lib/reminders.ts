@@ -10,8 +10,10 @@ async function remindForUser(userId: number, today: string): Promise<number> {
       {
         model: Bill,
         as: "bill",
-        where: { createdBy: userId },
-        include: [{ model: Student, as: "student" }],
+        // Bill is not paranoid, so soft-deleted invoices must be excluded here
+        // too — otherwise the push count contradicts what the calendar shows.
+        where: { createdBy: userId, deletedAt: null },
+        include: [{ model: Student, as: "student", where: { deletedAt: null }, required: true }],
       },
     ],
   });
@@ -38,7 +40,16 @@ async function remindForUser(userId: number, today: string): Promise<number> {
     });
     console.log(`[reminders] user=${userId} ${today}: push sent (${sessions.length} sessions)`);
   } catch (err) {
-    console.error(`[reminders] user=${userId} push failed:`, err);
+    // 404/410 means the browser dropped the subscription (reinstall, PWA removed).
+    // Clear it, otherwise Settings keeps claiming notifications are on while the
+    // user silently never receives another reminder.
+    const statusCode = (err as { statusCode?: number }).statusCode;
+    if (statusCode === 404 || statusCode === 410) {
+      await user.update({ pushSubscription: null, pushEnabled: false });
+      console.warn(`[reminders] user=${userId}: subscription expired (${statusCode}), cleared`);
+    } else {
+      console.error(`[reminders] user=${userId} push failed:`, err);
+    }
   }
 
   return sessions.length;

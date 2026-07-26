@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { signOut } from "next-auth/react";
 import { Switch } from "@/components/ui/switch";
 import useIsMobile from "@/hooks/use-is-mobile";
-
-const SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/signin` : "https://tutor.neyut.dev/signin";
+import { useSignOut } from "@/hooks/use-sign-out";
+import { api } from "@/lib/api-client";
 
 interface Props {
   userEmail: string;
@@ -29,6 +27,14 @@ async function subscribePush(): Promise<PushSubscription | null> {
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
   });
+}
+
+/** Drop the browser-side registration too, not just the server record. */
+async function unsubscribePush(): Promise<void> {
+  if (!("serviceWorker" in navigator)) return;
+  const reg = await navigator.serviceWorker.getRegistration();
+  const existing = await reg?.pushManager.getSubscription();
+  await existing?.unsubscribe();
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -67,8 +73,10 @@ const labelStyle: React.CSSProperties = {
 
 export default function SettingsClient({ userEmail, userName, notificationsEnabled: initialEnabled }: Props) {
   const isMobile = useIsMobile();
+  const { signOut, signingOut } = useSignOut();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [name, setName] = useState(userName ?? "");
   const [savingName, setSavingName] = useState(false);
 
@@ -96,28 +104,37 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
       if (enabled) {
         const sub = await subscribePush();
         if (!sub) {
+          // Leaving the switch on would make the UI disagree with the server.
+          setEnabled(false);
           toast.error("Trình duyệt không hỗ trợ hoặc quyền bị từ chối");
           return;
         }
-        await fetch("/api/notifications/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(sub.toJSON()),
-        });
+        await api("/api/notifications/subscribe", { method: "POST", body: sub.toJSON() });
       } else {
-        await fetch("/api/notifications/subscribe", { method: "DELETE" });
+        await unsubscribePush();
+        await api("/api/notifications/subscribe", { method: "DELETE" });
       }
-      const res = await fetch("/api/notifications/settings", {
+      await api("/api/notifications/settings", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationsEnabled: enabled }),
+        body: { notificationsEnabled: enabled },
       });
-      if (!res.ok) { toast.error("Lưu thất bại"); return; }
       toast.success("Đã lưu cài đặt");
-    } catch {
-      toast.error("Có lỗi xảy ra");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleTestPush() {
+    setTesting(true);
+    try {
+      await api("/api/notifications/test", { method: "POST" });
+      toast.success("Đã gửi thông báo thử — kiểm tra máy của bạn nhé");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gửi thất bại");
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -176,6 +193,28 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
           >
             {saving ? "Đang lưu..." : "Lưu cài đặt"}
           </button>
+
+          {/* Without this the only way to find out push is broken was to wait
+              for the next 07:00 reminder that never arrived. */}
+          <button
+            onClick={handleTestPush}
+            disabled={testing || !enabled}
+            style={{
+              width: "100%",
+              marginTop: "8px",
+              background: "#FFF8FA",
+              color: "#E8788A",
+              border: "1px solid #F4D8DE",
+              borderRadius: "10px",
+              padding: "10px 0",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor: testing || !enabled ? "not-allowed" : "pointer",
+              opacity: testing || !enabled ? 0.55 : 1,
+            }}
+          >
+            {testing ? "Đang gửi..." : "Gửi thông báo thử"}
+          </button>
         </div>
 
         {/* Account info */}
@@ -221,7 +260,8 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
         {/* Sign out */}
         <div style={cardStyle}>
           <button
-            onClick={() => signOut({ callbackUrl: SIGN_IN_URL })}
+            onClick={signOut}
+            disabled={signingOut}
             style={{
               width: "100%",
               background: "#FFF8FA",
@@ -231,7 +271,8 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
               padding: "12px 0",
               fontSize: "14px",
               fontWeight: 500,
-              cursor: "pointer",
+              cursor: signingOut ? "not-allowed" : "pointer",
+              opacity: signingOut ? 0.7 : 1,
               transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
@@ -243,7 +284,7 @@ export default function SettingsClient({ userEmail, userName, notificationsEnabl
               e.currentTarget.style.borderColor = "#F4D8DE";
             }}
           >
-            Đăng xuất
+            {signingOut ? "Đang đăng xuất..." : "Đăng xuất"}
           </button>
         </div>
       </div>
