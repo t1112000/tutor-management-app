@@ -4,8 +4,11 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      # Set POSTGRES_PASSWORD in the untracked .env. It used to be committed here.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
+      # Optional override. Postgres only reads this when it initialises an empty
+      # data directory, so the default has to keep matching the existing pgdata
+      # volume — changing it here does NOT change the password of a database that
+      # already exists (run ALTER USER for that).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tuyen}
       POSTGRES_DB: tutor_app
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -26,7 +29,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-tuyen}
     volumes:
       - ./backups:/backups
     # Nightly dump, 14 days of retention. The pgdata volume was the only copy of
@@ -53,7 +56,7 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/tutor_app
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-tuyen}@db:5432/tutor_app
     ports:
       - "3001:3000"
     healthcheck:
