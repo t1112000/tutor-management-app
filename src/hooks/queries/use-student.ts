@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/query-keys'
+import { api } from '@/lib/api-client'
 
 export interface Schedule {
   id: number
@@ -33,33 +34,19 @@ export interface StudentDetail {
   bills: BillSummary[]
 }
 
-async function expectOk(res: Response) {
-  if (!res.ok) throw new Error(await res.text())
-  return res
-}
-
 export function useStudent(id: number) {
   return useQuery({
     queryKey: keys.students.detail(id),
-    queryFn: async () => {
-      const res = await expectOk(await fetch(`/api/students/${id}`))
-      return res.json() as Promise<StudentDetail>
-    },
+    enabled: Number.isFinite(id) && id > 0,
+    queryFn: () => api<StudentDetail>(`/api/students/${id}`),
   })
 }
 
 export function useAddSchedule(studentId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { dayOfWeek: number; startTime: string; endTime: string }) => {
-      await expectOk(
-        await fetch(`/api/students/${studentId}/schedules`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(input),
-        })
-      )
-    },
+    mutationFn: (input: { dayOfWeek: number; startTime: string; endTime: string }) =>
+      api(`/api/students/${studentId}/schedules`, { method: 'POST', body: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
       qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
@@ -70,15 +57,8 @@ export function useAddSchedule(studentId: number) {
 export function useRemoveSchedule(studentId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (scheduleId: number) => {
-      await expectOk(
-        await fetch(`/api/students/${studentId}/schedules`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scheduleId }),
-        })
-      )
-    },
+    mutationFn: (scheduleId: number) =>
+      api(`/api/students/${studentId}/schedules`, { method: 'DELETE', body: { scheduleId } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
       qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
@@ -89,15 +69,8 @@ export function useRemoveSchedule(studentId: number) {
 export function useEditSchedule(studentId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { scheduleId: number; startTime: string; endTime: string }) => {
-      await expectOk(
-        await fetch(`/api/students/${studentId}/schedules`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(input),
-        })
-      )
-    },
+    mutationFn: (input: { scheduleId: number; startTime: string; endTime: string }) =>
+      api(`/api/students/${studentId}/schedules`, { method: 'PATCH', body: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
       qc.invalidateQueries({ queryKey: ['calendar'], exact: false })

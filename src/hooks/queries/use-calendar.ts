@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { keys } from '@/lib/query-keys'
+import { api } from '@/lib/api-client'
 
 export interface CalendarSession {
   id: number
@@ -10,7 +11,9 @@ export interface CalendarSession {
   notes: string | null
   bill: {
     id: number
+    status: 'unpaid' | 'paid'
     student: {
+      id: number
       name: string
       subject: 'english' | 'chinese'
       color: string | null
@@ -35,13 +38,14 @@ export interface FixedCalendarSession {
   }
 }
 
+// gcTime must outlive the persisted cache, otherwise the IndexedDB persister has
+// nothing to restore and every visit starts on the full-screen loading skeleton.
 const calendarQueryOptions = {
   staleTime: 0,
-  gcTime: 60 * 1000,
+  gcTime: 24 * 60 * 60 * 1000,
   refetchOnMount: 'always' as const,
   refetchOnWindowFocus: true,
   refetchOnReconnect: true,
-  refetchInterval: 60 * 1000,
 }
 
 export function useCalendar(weekStart: string, enabled = true) {
@@ -49,11 +53,9 @@ export function useCalendar(weekStart: string, enabled = true) {
     queryKey: keys.calendar.week(weekStart),
     enabled,
     ...calendarQueryOptions,
-    queryFn: async () => {
-      const res = await fetch(`/api/calendar?weekStart=${weekStart}`, { cache: 'no-store' })
-      if (!res.ok) throw new Error(await res.text())
-      return res.json() as Promise<CalendarSession[]>
-    },
+    // Only the live week polls; the dashboard mounts this hook too.
+    refetchInterval: 60 * 1000,
+    queryFn: () => api<CalendarSession[]>(`/api/calendar?weekStart=${weekStart}`),
   })
 }
 
@@ -61,11 +63,9 @@ export function useFixedCalendar(enabled = true) {
   return useQuery({
     queryKey: keys.calendar.fixed(),
     enabled,
+    // No refetchInterval: recurring weekly slots only change through mutations,
+    // which already invalidate the ['calendar'] key.
     ...calendarQueryOptions,
-    queryFn: async () => {
-      const res = await fetch('/api/calendar/fixed', { cache: 'no-store' })
-      if (!res.ok) throw new Error(await res.text())
-      return res.json() as Promise<FixedCalendarSession[]>
-    },
+    queryFn: () => api<FixedCalendarSession[]>('/api/calendar/fixed'),
   })
 }

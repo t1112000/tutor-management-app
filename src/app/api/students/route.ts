@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth-helpers";
+import { requireUser, parseBody } from "@/lib/auth-helpers";
 import { Bill, Student, StudentSchedule } from "@/lib/db/index";
 import { studentSchema } from "@/lib/validations";
-import { Op } from "sequelize";
+import { Op, type WhereOptions } from "sequelize";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,9 +11,21 @@ export async function GET(req: NextRequest) {
   const { user, response } = await requireUser();
   if (response) return response;
 
-  const q = req.nextUrl.searchParams.get("q") ?? "";
-  const where: any = {};
-  if (q) where.name = { [Op.iLike]: `%${q}%` };
+  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const where: WhereOptions = {
+    createdBy: user.id,
+    deletedAt: null,
+    // The search box promises name / phone lookup, so search all three.
+    ...(q
+      ? {
+          [Op.or]: [
+            { name: { [Op.iLike]: `%${q}%` } },
+            { phone: { [Op.iLike]: `%${q}%` } },
+            { parentPhone: { [Op.iLike]: `%${q}%` } },
+          ],
+        }
+      : {}),
+  };
 
   const students = await Student.findAll({
     where,
@@ -30,10 +42,9 @@ export async function POST(req: NextRequest) {
   const { user, response } = await requireUser();
   if (response) return response;
 
-  const body = await req.json();
-  const parsed = studentSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const { value, response: badBody } = await parseBody(req, studentSchema);
+  if (badBody) return badBody;
 
-  const student = await Student.create({ ...parsed.data, createdBy: user!.id });
+  const student = await Student.create({ ...value, createdBy: user.id });
   return NextResponse.json(student, { status: 201 });
 }

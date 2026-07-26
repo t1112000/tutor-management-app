@@ -5,12 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
-import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { navItems } from "./nav-items";
-
-const SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/signin` : "https://tutor.neyut.dev/signin";
 
 interface SidebarProps {
   user: { name?: string | null; email?: string | null; image?: string | null };
@@ -19,6 +16,7 @@ interface SidebarProps {
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
+  const { signOut, signingOut } = useSignOut();
 
   useEffect(() => {
     try {
@@ -49,7 +47,7 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* Header */}
       {expanded ? (
         <div className="flex items-center gap-2.5 px-3 h-16 border-b border-border shrink-0">
-          <Image src="/logo-myclass.png" alt="MyClass" width={36} height={36} className="rounded-lg shrink-0" />
+          <Image src="/logo-myclass.webp" alt="MyClass" width={36} height={36} className="rounded-lg shrink-0" />
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-sm font-semibold text-[#2C1820] leading-tight truncate">MyClass</span>
             <span className="text-[11px] text-[#A87888] leading-tight truncate">Quản lý dạy học</span>
@@ -68,7 +66,7 @@ export default function Sidebar({ user }: SidebarProps) {
           title="Mở rộng"
           className="h-16 w-full flex items-center justify-center border-b border-border shrink-0 transition-colors hover:bg-[rgba(232,120,138,0.06)]"
         >
-          <Image src="/logo-myclass.png" alt="MyClass" width={36} height={36} className="rounded-lg shrink-0" />
+          <Image src="/logo-myclass.webp" alt="MyClass" width={36} height={36} className="rounded-lg shrink-0" />
         </button>
       )}
 
@@ -129,8 +127,9 @@ export default function Sidebar({ user }: SidebarProps) {
                 <span className="text-[11px] text-[#A87888] leading-tight">Giáo viên</span>
               </div>
               <button
-                onClick={() => signOut({ callbackUrl: SIGN_IN_URL })}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#A87888] hover:bg-red-50 hover:text-red-400 transition-colors shrink-0"
+                onClick={signOut}
+                disabled={signingOut}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#A87888] hover:bg-red-50 hover:text-red-400 transition-colors shrink-0 disabled:opacity-50"
                 title="Đăng xuất"
               >
                 <LogOut size={15} />
@@ -140,8 +139,9 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
         {!expanded && (
           <button
-            onClick={() => signOut({ callbackUrl: SIGN_IN_URL })}
-            className="w-full py-2.5 flex items-center justify-center text-[#A87888] hover:bg-red-50 hover:text-red-400 transition-colors border-t border-border"
+            onClick={signOut}
+            disabled={signingOut}
+            className="w-full py-2.5 flex items-center justify-center text-[#A87888] hover:bg-red-50 hover:text-red-400 transition-colors border-t border-border disabled:opacity-50"
             title="Đăng xuất"
           >
             <LogOut size={15} />

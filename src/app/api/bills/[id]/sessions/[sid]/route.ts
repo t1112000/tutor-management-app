@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth-helpers";
-import { Bill, BillSession, sequelize } from "@/lib/db/index";
+import { requireUser, parseBody, jsonError, findOwnedBill } from "@/lib/auth-helpers";
+import { BillSession, sequelize } from "@/lib/db/index";
+import { sessionUpdateSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,21 +14,25 @@ export async function PUT(
   if (response) return response;
   const { id, sid } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id), deletedAt: null } });
-  if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const bill = await findOwnedBill(user.id, id);
+  if (!bill) return jsonError(404, "Không tìm thấy hóa đơn");
 
-  const session = await BillSession.findOne({ where: { id: Number(sid), billId: Number(id) } });
-  if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  const session = await BillSession.findOne({ where: { id: Number(sid), billId: bill.id } });
+  if (!session) return jsonError(404, "Không tìm thấy buổi học");
 
-  const body = await req.json();
-  const updates: Record<string, unknown> = {};
-  if (typeof body.isAttended === "boolean") updates.isAttended = body.isAttended;
-  if (body.scheduledDate) updates.scheduledDate = body.scheduledDate;
-  if (body.startTime) updates.startTime = body.startTime;
-  if (body.endTime) updates.endTime = body.endTime;
-  if (body.notes !== undefined) updates.notes = body.notes;
+  const { value, response: badBody } = await parseBody(req, sessionUpdateSchema);
+  if (badBody) return badBody;
 
-  await session.update(updates);
+  // Every other handler refuses to touch a paid invoice. Correcting attendance
+  // or notes after payment is legitimate; rewriting the schedule is not.
+  if (bill.status === "paid") {
+    const reschedules = ["scheduledDate", "startTime", "endTime"] as const;
+    if (reschedules.some((k) => value[k] !== undefined)) {
+      return jsonError(400, "Hóa đơn đã thanh toán không thể đổi lịch buổi học");
+    }
+  }
+
+  await session.update(value);
   return NextResponse.json(session);
 }
 
@@ -39,12 +44,12 @@ export async function DELETE(
   if (response) return response;
   const { id, sid } = await params;
 
-  const bill = await Bill.findOne({ where: { id: Number(id), deletedAt: null } });
-  if (!bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (bill.status === "paid") return NextResponse.json({ error: "Paid bills cannot be modified" }, { status: 400 });
+  const bill = await findOwnedBill(user.id, id);
+  if (!bill) return jsonError(404, "Không tìm thấy hóa đơn");
+  if (bill.status === "paid") return jsonError(400, "Hóa đơn đã thanh toán không thể sửa");
 
-  const session = await BillSession.findOne({ where: { id: Number(sid), billId: Number(id) } });
-  if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  const session = await BillSession.findOne({ where: { id: Number(sid), billId: bill.id } });
+  if (!session) return jsonError(404, "Không tìm thấy buổi học");
 
   const t = await sequelize.transaction();
   try {

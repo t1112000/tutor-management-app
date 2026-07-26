@@ -11,5 +11,5 @@ export default async function HomePage() {
   const session = await auth();
   if (!session) redirect("/signin");
 
-  return <DashboardContent userId={(session.user as any).id} />;
+  return <DashboardContent />;
 }

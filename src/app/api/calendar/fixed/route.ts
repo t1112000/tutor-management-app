@@ -14,7 +14,7 @@ export async function GET() {
       {
         model: Student,
         as: "student",
-        where: { createdBy: user!.id },
+        where: { createdBy: user.id, deletedAt: null },
         required: true,
       },
     ],

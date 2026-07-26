@@ -1,34 +1,67 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: tuyen
+      # Set POSTGRES_PASSWORD in the untracked .env. It used to be committed here.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
       POSTGRES_DB: tutor_app
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Loopback only. Docker publishes to 0.0.0.0 by default and bypasses ufw,
+    # which put this database straight on the public internet.
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  db-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
+    volumes:
+      - ./backups:/backups
+    # Nightly dump, 14 days of retention. The pgdata volume was the only copy of
+    # every invoice and attendance record in the system.
+    entrypoint: >
+      sh -c 'while true; do
+        sleep 86400;
+        f=/backups/tutor_app-$$(date +%Y%m%d-%H%M%S).sql.gz;
+        pg_dump -h db -U postgres tutor_app | gzip > "$$f" && echo "backup written: $$f";
+        find /backups -name "tutor_app-*.sql.gz" -mtime +14 -delete;
+      done'
+
   app:
-    build: .
+    build:
+      context: .
+      # Compose interpolates these from ./.env; they must be present at build
+      # time because Next.js inlines NEXT_PUBLIC_* into the client bundle.
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://postgres:tuyen@db:5432/tutor_app
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/tutor_app
     ports:
       - "3001:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
 volumes:
   pgdata:

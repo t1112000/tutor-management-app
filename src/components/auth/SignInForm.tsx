@@ -61,10 +61,10 @@ export default function SignInForm() {
         {/* Logo — the image already contains "MyClass" text */}
         <div className="flex flex-col items-center" style={{ marginBottom: "32px" }}>
           <Image
-            src="/logo-myclass.png"
+            src="/logo-myclass.webp"
             alt="MyClass"
-            width={160}
-            height={160}
+            width={640}
+            height={427}
             style={{ width: "160px", height: "auto", marginBottom: "6px" }}
           />
           <p style={{ fontSize: "13px", color: "#A87888", marginTop: "2px" }}>

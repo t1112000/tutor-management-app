@@ -7,6 +7,11 @@ export function todayVN(): string {
   return formatInTimeZone(new Date(), VN_TZ, "yyyy-MM-dd");
 }
 
+/** Current hour (0–23) in Vietnam, independent of the device timezone. */
+export function hourVN(): number {
+  return Number(formatInTimeZone(new Date(), VN_TZ, "H"));
+}
+
 export function vnWeekday(dateStr: string): number {
   return new Date(dateStr + "T00:00:00").getDay();
 }
@@ -29,8 +34,11 @@ export function weekEndStr(dateStr: string): string {
   );
 }
 
+// Constructing an Intl formatter is expensive and this runs per table cell.
+const VND_FORMAT = new Intl.NumberFormat("vi-VN");
+
 export function formatMoneyVND(amount: number | string): string {
-  return new Intl.NumberFormat("vi-VN").format(Number(amount)) + " đ";
+  return VND_FORMAT.format(Number(amount)) + " đ";
 }
 
 export function formatDateVN(dateStr: string): string {

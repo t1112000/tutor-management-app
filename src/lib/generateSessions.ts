@@ -24,7 +24,7 @@ export function generateSessions(
   );
 
   const results: GeneratedSession[] = [];
-  let current = new Date(startDate + "T00:00:00");
+  const current = new Date(startDate + "T00:00:00");
   const maxDays = sessionCount * 14 + 365;
 
   for (let guard = 0; results.length < sessionCount && guard < maxDays; guard++) {

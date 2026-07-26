@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SubjectBadge } from "@/components/ui/subject-badge";
+import { QueryErrorState } from "@/components/ui/query-error";
 import { formatMoneyVND } from "@/lib/time";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useReport } from "@/hooks/queries/use-report";
@@ -74,7 +75,7 @@ export default function ReportClient() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-  const { data: report, isLoading: loading } = useReport(month);
+  const { data: report, isLoading: loading, isError, refetch } = useReport(month);
 
   function changeMonth(delta: number) {
     const [y, m] = month.split("-").map(Number);
@@ -93,6 +94,16 @@ export default function ReportClient() {
 
   if (loading) {
     return <ReportLoadingView isMobile={isMobile} />;
+  }
+
+  // Rendering "0 đ" when the request actually failed is worse than an error for
+  // a revenue report — the tutor cannot tell an empty month from a dead network.
+  if (isError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <QueryErrorState message="Không tải được báo cáo" onRetry={() => refetch()} />
+      </div>
+    );
   }
 
   return (

@@ -117,7 +117,7 @@ export default function DailySplash() {
 
   if (show === null || !show) return null;
 
-  const bgUrl = isMobile ? "/bg-mobile.png" : "/bg-main.png";
+  const bgUrl = isMobile ? "/bg-mobile.webp" : "/bg-main.webp";
 
   return (
     <div

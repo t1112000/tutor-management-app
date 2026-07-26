@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { X, Pencil } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { weekStartStr, addDaysStr, formatWeekRangeVN } from "@/lib/time";
+import { weekStartStr, addDaysStr, formatWeekRangeVN, todayVN } from "@/lib/time";
 import { findColor, hashColor } from "@/lib/student-colors";
-import { keys } from "@/lib/query-keys";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useCalendar, useFixedCalendar } from "@/hooks/queries/use-calendar";
+import { useUpdateSession } from "@/hooks/queries/use-bill";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
@@ -25,6 +24,7 @@ interface Session {
   notes: string | null;
   bill: {
     id: number;
+    status: "unpaid" | "paid";
     student: {
       name: string;
       subject: "english" | "chinese";
@@ -207,10 +207,7 @@ function CalendarLoadingView({ isMobile }: { isMobile: boolean }) {
 
 export default function CalendarClient() {
   const isMobile = useIsMobile();
-  const queryClient = useQueryClient();
-  const [weekStart, setWeekStart] = useState(() =>
-    weekStartStr(new Date().toISOString().slice(0, 10)),
-  );
+  const [weekStart, setWeekStart] = useState(() => weekStartStr(todayVN()));
   const [showFixedSchedule, setShowFixedSchedule] = useState(false);
   const { data: sessions = [], isLoading: sessionsLoading } = useCalendar(
     weekStart,
@@ -228,7 +225,12 @@ export default function CalendarClient() {
   const [editNotes, setEditNotes] = useState("");
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [endPickerOpen, setEndPickerOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  // The hook also invalidates the bill detail; the old raw fetch here only
+  // refreshed the calendar, so the bill page kept showing the old date/time.
+  const { mutateAsync: updateSession, isPending: saving } = useUpdateSession(
+    selected?.bill.id ?? 0,
+  );
 
   function handleEdit() {
     if (!selected) return;
@@ -245,40 +247,36 @@ export default function CalendarClient() {
 
   async function handleSave() {
     if (!selected) return;
-    setSaving(true);
     try {
-      const res = await fetch(
-        `/api/bills/${selected.bill.id}/sessions/${selected.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            scheduledDate: editDate,
-            startTime: editStart,
-            endTime: editEnd,
-            notes: editNotes || null,
-          }),
+      await updateSession({
+        sessionId: selected.id,
+        updates: {
+          scheduledDate: editDate,
+          startTime: editStart,
+          endTime: editEnd,
+          notes: editNotes || null,
         },
-      );
-      if (!res.ok) throw new Error("Failed");
-      const updated = await res.json();
-      setSelected({ ...selected, ...updated });
-      queryClient.invalidateQueries({ queryKey: keys.calendar.week(weekStart) });
+      });
+      setSelected({
+        ...selected,
+        scheduledDate: editDate,
+        startTime: editStart,
+        endTime: editEnd,
+        notes: editNotes || null,
+      });
       setIsEditing(false);
       toast.success("Đã cập nhật buổi học");
-    } catch {
-      toast.error("Có lỗi xảy ra");
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra");
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayVN();
   const days = Array.from({ length: 7 }, (_, i) => addDaysStr(weekStart, i));
 
   // Init selected day index: today if in current week, else 0
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayVN();
     const ws = weekStartStr(todayStr);
     const initialDays = Array.from({ length: 7 }, (_, i) => addDaysStr(ws, i));
     const idx = initialDays.indexOf(todayStr);
@@ -1267,7 +1265,8 @@ export default function CalendarClient() {
               {isEditing ? "Chỉnh sửa buổi học" : "Chi tiết buổi học"}
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {!isEditing && (
+              {/* A paid invoice is locked server-side; don't offer the edit affordance. */}
+              {!isEditing && selected?.bill.status !== "paid" && (
                 <button
                   onClick={handleEdit}
                   style={{

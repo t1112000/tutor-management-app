@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SubjectBadge } from "@/components/ui/subject-badge";
+import { QueryErrorState } from "@/components/ui/query-error";
 import AddStudentDialog from "./AddStudentDialog";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useStudents } from "@/hooks/queries/use-students";
@@ -45,7 +46,7 @@ export default function StudentsClient() {
     return () => clearTimeout(t);
   }, [inputValue]);
 
-  const { data: students = [], isLoading: loading } = useStudents(q);
+  const { data: students = [], isLoading: loading, isError, refetch } = useStudents(q);
 
   function onSearch(value: string) {
     setInputValue(value);
@@ -99,6 +100,8 @@ export default function StudentsClient() {
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {loading ? (
               <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</div>
+            ) : isError ? (
+              <QueryErrorState message="Không tải được danh sách học sinh" onRetry={() => refetch()} compact />
             ) : !students.length ? (
               <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Chưa có học sinh nào</div>
             ) : students.map((s) => (
@@ -126,7 +129,7 @@ export default function StudentsClient() {
                 {/* Bill count + chevron */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                   {(s.bills?.length ?? 0) > 0 && (
-                    <span style={{ fontSize: "12px", color: "#A87888" }}>{s.bills?.length} bill</span>
+                    <span style={{ fontSize: "12px", color: "#A87888" }}>{s.bills?.length} hóa đơn</span>
                   )}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C0A0A8" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
@@ -146,6 +149,8 @@ export default function StudentsClient() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Đang tải...</td></tr>
+                ) : isError ? (
+                  <tr><td colSpan={5}><QueryErrorState message="Không tải được danh sách học sinh" onRetry={() => refetch()} compact /></td></tr>
                 ) : !students.length ? (
                   <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Chưa có học sinh nào</td></tr>
                 ) : students.map((s) => (

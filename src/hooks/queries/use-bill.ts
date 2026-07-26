@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/query-keys'
+import { api } from '@/lib/api-client'
 
 export interface BillSession {
   id: number
@@ -21,17 +22,33 @@ export interface Bill {
   sessions: BillSession[]
 }
 
-async function expectOk(res: Response) {
-  if (!res.ok) throw new Error(await res.text())
-  return res
+export interface CreateBillInput {
+  studentId: number
+  sessionCount: number
+  totalAmount: number
+  startDate: string
+  notes?: string
+  sessions: Array<{ scheduledDate: string; startTime: string; endTime: string }>
 }
 
 export function useBill(id: number) {
   return useQuery({
     queryKey: keys.bills.detail(id),
-    queryFn: async () => {
-      const res = await expectOk(await fetch(`/api/bills/${id}`))
-      return res.json() as Promise<Bill>
+    enabled: Number.isFinite(id) && id > 0,
+    queryFn: () => api<Bill>(`/api/bills/${id}`),
+  })
+}
+
+export function useCreateBill(studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateBillInput) =>
+      api<{ id: number }>('/api/bills', { method: 'POST', body: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
+      qc.invalidateQueries({ queryKey: keys.students.all() })
+      qc.invalidateQueries({ queryKey: ['report'], exact: false })
+      qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
     },
   })
 }
@@ -39,22 +56,27 @@ export function useBill(id: number) {
 export function useUpdateSession(billId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({
-      sessionId,
-      updates,
-    }: {
-      sessionId: number
-      updates: Record<string, unknown>
-    }) => {
-      await expectOk(
-        await fetch(`/api/bills/${billId}/sessions/${sessionId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
+    mutationFn: ({ sessionId, updates }: { sessionId: number; updates: Record<string, unknown> }) =>
+      api(`/api/bills/${billId}/sessions/${sessionId}`, { method: 'PUT', body: updates }),
+
+    // Attendance is the core daily interaction: it must feel instant, and a
+    // failure must roll back visibly instead of silently keeping the old value.
+    onMutate: async ({ sessionId, updates }) => {
+      const key = keys.bills.detail(billId)
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<Bill>(key)
+      if (previous) {
+        qc.setQueryData<Bill>(key, {
+          ...previous,
+          sessions: previous.sessions.map((s) => (s.id === sessionId ? { ...s, ...updates } : s)),
         })
-      )
+      }
+      return { previous }
     },
-    onSuccess: () => {
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(keys.bills.detail(billId), context.previous)
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
     },
@@ -64,9 +86,19 @@ export function useUpdateSession(billId: number) {
 export function usePayBill(billId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
-      await expectOk(await fetch(`/api/bills/${billId}/pay`, { method: 'POST' }))
+    mutationFn: () => api(`/api/bills/${billId}/pay`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+      qc.invalidateQueries({ queryKey: ['report'], exact: false })
+      qc.invalidateQueries({ queryKey: keys.students.all() })
     },
+  })
+}
+
+export function useUnpayBill(billId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api(`/api/bills/${billId}/unpay`, { method: 'POST' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: ['report'], exact: false })
@@ -78,9 +110,21 @@ export function usePayBill(billId: number) {
 export function useDeleteBill(billId: number, studentId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
-      await expectOk(await fetch(`/api/bills/${billId}`, { method: 'DELETE' }))
+    mutationFn: () => api(`/api/bills/${billId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
+      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
+      qc.invalidateQueries({ queryKey: ['report'], exact: false })
+      qc.invalidateQueries({ queryKey: ['calendar'], exact: false })
     },
+  })
+}
+
+export function useUpdateBill(billId: number, studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (updates: { totalAmount: number; notes: string | null }) =>
+      api(`/api/bills/${billId}`, { method: 'PUT', body: updates }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
@@ -89,37 +133,11 @@ export function useDeleteBill(billId: number, studentId: number) {
   })
 }
 
-export function useUpdateBill(billId: number, studentId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (updates: { totalAmount: number; notes: string | null }) => {
-      await expectOk(
-        await fetch(`/api/bills/${billId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        })
-      )
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
-      qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
-    },
-  })
-}
-
 export function useAddSession(billId: number, studentId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { scheduledDate: string; startTime: string; endTime: string }) => {
-      await expectOk(
-        await fetch(`/api/bills/${billId}/sessions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(input),
-        })
-      )
-    },
+    mutationFn: (input: { scheduledDate: string; startTime: string; endTime: string }) =>
+      api(`/api/bills/${billId}/sessions`, { method: 'POST', body: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: keys.students.detail(studentId) })
@@ -131,11 +149,8 @@ export function useAddSession(billId: number, studentId: number) {
 export function useDeleteSession(billId: number, studentId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (sessionId: number) => {
-      await expectOk(
-        await fetch(`/api/bills/${billId}/sessions/${sessionId}`, { method: 'DELETE' })
-      )
-    },
+    mutationFn: (sessionId: number) =>
+      api(`/api/bills/${billId}/sessions/${sessionId}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.bills.detail(billId) })
       qc.invalidateQueries({ queryKey: ['calendar'], exact: false })

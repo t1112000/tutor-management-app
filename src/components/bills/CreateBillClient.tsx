@@ -12,20 +12,8 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { generateSessions } from "@/lib/generateSessions";
 import { todayVN } from "@/lib/time";
 import useIsMobile from "@/hooks/use-is-mobile";
-
-interface Schedule {
-  id: number;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-}
-
-interface Student {
-  id: number;
-  name: string;
-  subject: "english" | "chinese";
-  schedules: Schedule[];
-}
+import { useStudent } from "@/hooks/queries/use-student";
+import { useCreateBill } from "@/hooks/queries/use-bill";
 
 interface SessionRow {
   scheduledDate: string;
@@ -49,22 +37,16 @@ function formatAmount(val: string) {
 export default function CreateBillClient({ studentId }: { studentId: number }) {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const [student, setStudent] = useState<Student | null>(null);
+  const { data: student } = useStudent(studentId);
+  const { mutateAsync: createBill, isPending: saving } = useCreateBill(studentId);
   const [sessionCount, setSessionCount] = useState("8");
   const [totalAmount, setTotalAmount] = useState("");
   const [startDate, setStartDate] = useState(todayVN());
   const [notes, setNotes] = useState("");
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [openPicker, setOpenPicker] = useState<string | null>(null);
   const pauseAutoGen = useRef(false);
-
-  useEffect(() => {
-    fetch(`/api/students/${studentId}`)
-      .then((r) => r.json())
-      .then(setStudent);
-  }, [studentId]);
 
   useEffect(() => {
     if (!student) return;
@@ -118,29 +100,19 @@ export default function CreateBillClient({ studentId }: { studentId: number }) {
       toast.error("Cần ít nhất 1 buổi học");
       return;
     }
-    setSaving(true);
     try {
-      const res = await fetch("/api/bills", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId: student.id,
-          sessionCount: sessions.length,
-          totalAmount: Number(totalAmount),
-          startDate,
-          notes: notes || undefined,
-          sessions,
-        }),
+      const { id } = await createBill({
+        studentId: student.id,
+        sessionCount: sessions.length,
+        totalAmount: Number(totalAmount),
+        startDate,
+        notes: notes || undefined,
+        sessions,
       });
-      if (!res.ok) {
-        toast.error("Tạo hóa đơn thất bại");
-        return;
-      }
-      const { id } = await res.json();
       toast.success("Đã tạo hóa đơn");
       router.push(`/bills/${id}`);
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Tạo hóa đơn thất bại");
     }
   }
 

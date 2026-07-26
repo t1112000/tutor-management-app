@@ -2,6 +2,7 @@ import {
   Model, DataTypes, InferAttributes, InferCreationAttributes,
   CreationOptional, ForeignKey, NonAttribute, Sequelize,
 } from "sequelize";
+import type { BillSession } from "./BillSession";
 import type { Student } from "./Student";
 import type { User } from "./User";
 
@@ -22,6 +23,7 @@ export class Bill extends Model<
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: Date | null;
   declare student?: NonAttribute<Student>;
+  declare sessions?: NonAttribute<BillSession[]>;
   declare creator?: NonAttribute<User>;
 }
 

@@ -2,22 +2,20 @@
 
 import Link from "next/link";
 import { SubjectBadge } from "@/components/ui/subject-badge";
-import { formatMoneyVND, VN_DAY_NAMES } from "@/lib/time";
+import { QueryErrorState } from "@/components/ui/query-error";
+import { formatDateVN, formatMoneyVND, hourVN, todayVN, vnDayName, vnWeekday, weekStartStr } from "@/lib/time";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useStudents } from "@/hooks/queries/use-students";
 import { useReport } from "@/hooks/queries/use-report";
 import { useCalendar } from "@/hooks/queries/use-calendar";
 
 function getTodayLabel() {
-  const d = new Date();
-  const day = d.getDate().toString().padStart(2, "0");
-  const month = (d.getMonth() + 1).toString().padStart(2, "0");
-  const year = d.getFullYear();
-  return `${VN_DAY_NAMES[d.getDay()]}, ${day}/${month}/${year}`;
+  const today = todayVN();
+  return `${vnDayName(vnWeekday(today))}, ${formatDateVN(today)}`;
 }
 
 function getGreeting() {
-  const h = new Date().getHours();
+  const h = hourVN();
   if (h < 12) return "Chào buổi sáng!";
   if (h < 18) return "Chào buổi chiều!";
   return "Chào buổi tối!";
@@ -26,12 +24,6 @@ function getGreeting() {
 const cardStyle: React.CSSProperties = {
   background: "white", border: "1px solid #F4D8DE", borderRadius: "12px", padding: "20px 22px",
 };
-
-function getWeekStart() {
-  const d = new Date();
-  const diff = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
-  return new Date(new Date(d).setDate(diff)).toISOString().slice(0, 10);
-}
 
 function DashboardLoadingView({ isMobile }: { isMobile: boolean }) {
   const card = "rounded-[12px] border border-[#F4D8DE] bg-white";
@@ -110,7 +102,7 @@ function DashboardLoadingView({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-export default function DashboardContent({ userId }: { userId: number }) {
+export default function DashboardContent() {
   const isMobile = useIsMobile();
 
   const hdrStyle: React.CSSProperties = {
@@ -119,15 +111,18 @@ export default function DashboardContent({ userId }: { userId: number }) {
     backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
   };
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const weekStart = getWeekStart();
-  const today = new Date().toISOString().slice(0, 10);
+  // Vietnam time, not UTC: toISOString() is 7 hours behind, so between midnight
+  // and 07:00 local it resolves to yesterday (and to last week on Monday mornings).
+  const today = todayVN();
+  const currentMonth = today.slice(0, 7);
+  const weekStart = weekStartStr(today);
 
-  const { data: students, isLoading: l1 } = useStudents();
-  const { data: report,   isLoading: l2 } = useReport(currentMonth);
-  const { data: sessions, isLoading: l3 } = useCalendar(weekStart);
+  const { data: students, isLoading: l1, isError: e1, refetch: r1 } = useStudents();
+  const { data: report,   isLoading: l2, isError: e2, refetch: r2 } = useReport(currentMonth);
+  const { data: sessions, isLoading: l3, isError: e3, refetch: r3 } = useCalendar(weekStart);
 
   const loading = l1 || l2 || l3;
+  const hasError = e1 || e2 || e3;
 
   const activeStudents  = students?.length ?? 0;
   const totalBills      = report?.totalBillCount ?? 0;
@@ -138,6 +133,22 @@ export default function DashboardContent({ userId }: { userId: number }) {
 
   if (loading) {
     return <DashboardLoadingView isMobile={isMobile} />;
+  }
+
+  // Showing 0 students / 0 đ on a failed fetch reads as "you have no data".
+  if (hasError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <QueryErrorState
+          message="Không tải được dữ liệu tổng quan"
+          onRetry={() => {
+            r1();
+            r2();
+            r3();
+          }}
+        />
+      </div>
+    );
   }
 
   const chevron = (
