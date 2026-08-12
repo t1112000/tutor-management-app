@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/t1112000/tutor-management-app/security/advisories/new
+    about: Please do not file public issues for security problems. Use private reporting.

@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest an improvement or new capability
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What pain point does this solve for a private tutor?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Keep the single-tutor model in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This stays within a self-hosted, single-tutor app (not multi-tenant SaaS)
+          required: false
