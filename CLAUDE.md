@@ -49,7 +49,7 @@ Data model:
 
 `Student` and `Bill` are soft-deleted (`deletedAt`) and neither model is `paranoid`, so **every** query must filter `deletedAt: null` itself — the ownership helpers do this for you.
 
-Invoices are attributed to exactly one month (`billMonth()` in `src/lib/report.ts`: start date, else earliest session), so an invoice spanning two months is not counted twice.
+Invoices are attributed to exactly one month (`billMonth()` in `src/lib/report.ts`: start date, else earliest session), so an invoice spanning two months is not counted twice. Monthly report: `GET /api/report?month=YYYY-MM`. All-time totals + bill list + chart series: `GET /api/report?scope=all` via `computeAllTimeReport()`. Report charts use pinned `@tanstack/charts` (client-only components under `src/components/report/charts/`).
 
 ### Timezones
 

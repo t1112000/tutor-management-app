@@ -23,14 +23,14 @@ Most scheduling/billing tools assume multi-teacher centers or SaaS subscriptions
 - **Schedules** — recurring weekly slots (`dayOfWeek` + `HH:MM`)
 - **Bills & sessions** — generate sessions, mark paid/unpaid, edit session notes
 - **Calendar** — session view + fixed weekly schedule view
-- **Report** — monthly invoice attribution (no double-counting across months)
+- **Report** — monthly and all-time invoice totals, full bill list, TanStack Charts visualizations
 - **Settings** — profile, notification preferences, web push
 - **PWA** — installable; offline shell caching (API never cached)
 - **Docker** — Postgres + app + nightly DB backups
 
 ## Stack
 
-- Next.js 15 (App Router) · TypeScript · TanStack Query
+- Next.js 15 (App Router) · TypeScript · TanStack Query · TanStack Charts
 - PostgreSQL · Sequelize · umzug migrations
 - NextAuth (email + password / credentials)
 - Tailwind CSS · Radix UI · Vitest (pure logic)

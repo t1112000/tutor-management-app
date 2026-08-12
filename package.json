@@ -1,6 +1,6 @@
 {
   "name": "tutor-management-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
   "description": "MyClass — self-hosted private tutoring management (students, schedules, bills, calendar)",
@@ -32,6 +32,7 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
+    "@tanstack/charts": "0.11.1",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-query-persist-client": "^5.101.2",
     "bcryptjs": "^3.0.3",

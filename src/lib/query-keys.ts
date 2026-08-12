@@ -12,6 +12,7 @@ export const keys = {
     fixed: () => ['calendar', 'fixed'] as const,
   },
   report: {
-    month: (month: string) => ['report', month] as const,
+    month: (month: string) => ['report', 'month', month] as const,
+    all: () => ['report', 'all'] as const,
   },
 } as const
