@@ -69,6 +69,19 @@ yarn install
 yarn set-password <email> <password> [name]
 ```
 
+## Bắt đầu nhanh (Tiếng Việt)
+
+Hướng dẫn tóm tắt bằng Tiếng Việt để chạy thử MyClass qua Docker. Xem phần [Quick start (Docker)](#quick-start-docker) và [Environment](#environment) ở trên nếu cần chi tiết đầy đủ về biến môi trường.
+
+1. Clone repo: `git clone https://github.com/t1112000/tutor-management-app.git`
+2. Vào thư mục dự án: `cd tutor-management-app`
+3. Tạo file cấu hình: `cp .env.example .env`
+4. Mở `.env` và điền các biến bắt buộc (`AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, v.v. — xem bảng ở phần Quick start phía trên). Không commit file `.env` hay bất kỳ secret nào.
+5. Khởi chạy toàn bộ stack: `docker compose up --build`
+6. Mở ứng dụng tại `http://localhost:3000`
+7. Tạo tài khoản đầu tiên: `yarn install`, sau đó `yarn set-password <email> <mat-khau> [ten]`
+8. Đăng nhập lần đầu bằng email và mật khẩu vừa tạo ở bước 7
+
 ## Local development
 
 ```bash
