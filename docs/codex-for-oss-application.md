@@ -32,16 +32,16 @@ Even with **~34 stars**, these columns were marked weak and can sink an applicat
 - [x] Issue / PR templates
 - [x] `docs/release-v0.1.0.md` + `docs/good-first-issues.md` + `docs/oss-scorecard.md`
 
-### GitHub actions (you must do after push)
+### GitHub actions
 
-- [ ] `git push` packaging to `main`
-- [ ] Confirm green license badge / SPDX on GitHub
-- [ ] Settings → **Description** + **Topics**
-- [ ] **Release** `v0.1.0` (body from `release-v0.1.0.md`)
-- [ ] Open **4 issues** from `good-first-issues.md`; pin roadmap
-- [ ] Enable **Private vulnerability reporting**
+- [x] `git push` packaging to `main` (commit `899e3a1`)
+- [x] Confirm SPDX on GitHub — **MIT** detected
+- [ ] Settings → **Description** + **Topics** — **needs repo Admin** (owner `t1112000`; collaborator `esp-tuyen` only has Write)
+- [x] **Release** [`v0.1.0`](https://github.com/t1112000/tutor-management-app/releases/tag/v0.1.0)
+- [x] Opened issues [#2](https://github.com/t1112000/tutor-management-app/issues/2)–[#5](https://github.com/t1112000/tutor-management-app/issues/5); pin #5 if you have Admin
+- [ ] Enable **Private vulnerability reporting** (Admin)
 - [ ] ChatGPT email = form email; GitHub profile **public**
-- [ ] Write access on repo as primary maintainer
+- [ ] Form submit as the account that is **primary maintainer** with write access
 - [ ] Read Program Terms
 - [ ] Optional: teammate opens a small docs PR → 2nd contributor
 
