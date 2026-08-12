@@ -2,6 +2,9 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    # No container logs — personal app, disk is tight on the VPS
+    logging:
+      driver: "none"
     environment:
       POSTGRES_USER: postgres
       # Optional override. Postgres only reads this when it initialises an empty
@@ -25,6 +28,8 @@ services:
   db-backup:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging:
+      driver: "none"
     depends_on:
       db:
         condition: service_healthy
@@ -51,6 +56,8 @@ services:
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
     restart: unless-stopped
+    logging:
+      driver: "none"
     depends_on:
       db:
         condition: service_healthy
