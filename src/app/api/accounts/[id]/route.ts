@@ -36,7 +36,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (value.expiryDate !== undefined) account.expiryDate = value.expiryDate;
   if (value.quotaPercent !== undefined) account.quotaPercent = value.quotaPercent;
-  if (value.status !== undefined) account.status = value.status;
   if (value.notes !== undefined) account.notes = value.notes;
 
   await account.save();

@@ -6,8 +6,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { QueryErrorState } from "@/components/ui/query-error";
 import useIsMobile from "@/hooks/use-is-mobile";
-import { useAccounts, type InventoryAccount } from "@/hooks/queries/use-accounts";
-import { buildAccountCopyText } from "@/lib/accountCopyText";
+import { useAccounts, useCopyAccountsText, type InventoryAccount } from "@/hooks/queries/use-accounts";
 import AddAccountDialog from "./AddAccountDialog";
 import ImportAccountsDialog from "./ImportAccountsDialog";
 
@@ -49,6 +48,7 @@ export default function InventoryClient() {
   const [showImport, setShowImport] = useState(false);
 
   const { data: accounts = [], isLoading: loading, isError, refetch } = useAccounts(status, type);
+  const copyAccounts = useCopyAccountsText();
 
   function toggleSelected(id: number) {
     setSelected((prev) => {
@@ -59,10 +59,15 @@ export default function InventoryClient() {
   }
 
   async function copySelected() {
-    const chosen = accounts.filter((a) => selected.has(a.id));
-    if (chosen.length === 0) return;
-    await navigator.clipboard.writeText(buildAccountCopyText(chosen));
-    toast.success(`Đã copy ${chosen.length} tài khoản`);
+    const ids = accounts.filter((a) => selected.has(a.id)).map((a) => a.id);
+    if (ids.length === 0) return;
+    try {
+      const { text } = await copyAccounts.mutateAsync(ids);
+      await navigator.clipboard.writeText(text);
+      toast.success(`Đã copy ${ids.length} tài khoản`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Copy thất bại");
+    }
   }
 
   return (

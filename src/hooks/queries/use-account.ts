@@ -9,7 +9,6 @@ export interface UpdateAccountInput {
   twoFactorSecret?: string | null
   expiryDate?: string
   quotaPercent?: number | null
-  status?: 'available' | 'sold'
   notes?: string | null
 }
 
