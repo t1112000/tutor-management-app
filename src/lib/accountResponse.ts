@@ -42,3 +42,10 @@ export function toAccountResponse(account: Account): AccountResponse {
     createdAt: account.createdAt,
   };
 }
+
+export type AccountListResponse = Omit<AccountResponse, "password" | "twoFactorSecret">;
+
+export function toAccountListResponse(account: Account): AccountListResponse {
+  const { password: _p, twoFactorSecret: _t, ...rest } = toAccountResponse(account);
+  return rest;
+}

@@ -3,7 +3,7 @@ import { requireAccountType, parseBody, jsonError } from "@/lib/auth-helpers";
 import { Account } from "@/lib/db/index";
 import { accountSchema } from "@/lib/validations";
 import { encrypt } from "@/lib/crypto";
-import { toAccountResponse } from "@/lib/accountResponse";
+import { toAccountResponse, toAccountListResponse } from "@/lib/accountResponse";
 import type { WhereOptions } from "sequelize";
 
 export const runtime = "nodejs";
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   };
 
   const accounts = await Account.findAll({ where, order: [["createdAt", "DESC"]] });
-  return NextResponse.json(accounts.map(toAccountResponse));
+  return NextResponse.json(accounts.map(toAccountListResponse));
 }
 
 export async function POST(req: NextRequest) {

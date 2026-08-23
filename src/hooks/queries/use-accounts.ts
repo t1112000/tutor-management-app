@@ -15,6 +15,8 @@ export interface InventoryAccount {
   createdAt: string
 }
 
+export type InventoryAccountListItem = Omit<InventoryAccount, 'password' | 'twoFactorSecret'>
+
 export interface CreateAccountInput {
   type: 'netflix' | 'gpt_plus'
   email: string
@@ -35,8 +37,15 @@ export function useAccounts(status = 'available', type = '') {
     queryKey: keys.accounts.list(status, type),
     queryFn: () => {
       const params = new URLSearchParams({ status, ...(type ? { type } : {}) })
-      return api<InventoryAccount[]>(`/api/accounts?${params.toString()}`)
+      return api<InventoryAccountListItem[]>(`/api/accounts?${params.toString()}`)
     },
+  })
+}
+
+export function useCopyAccountsText() {
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      api<{ text: string }>('/api/accounts/copy-text', { method: 'POST', body: { ids } }),
   })
 }
 
