@@ -3,12 +3,14 @@ import { ZodError, type ZodTypeAny, type z } from "zod";
 import type { FindOptions } from "sequelize";
 import { auth } from "../../auth";
 import { Bill, Student } from "@/lib/db/index";
+import type { AccountType } from "@/lib/db/models/User";
 
 export interface SessionUser {
   id: number;
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  accountType: AccountType;
 }
 
 type Guarded<T> = { value: T; response: null } | { value: null; response: NextResponse };
@@ -37,6 +39,22 @@ export async function requireUser(): Promise<
     return { user: null, response: jsonError(401, "Unauthorized") };
   }
   return { user: session.user as SessionUser, response: null };
+}
+
+/**
+ * accountType is fixed at signup, so a tutor route reached by a reseller (or
+ * vice versa) is a mistake, not a permission the user could plausibly have —
+ * 403, not a redirect (API routes have nowhere to redirect to).
+ */
+export async function requireAccountType(
+  expected: AccountType
+): Promise<{ user: SessionUser; response: null } | { user: null; response: NextResponse }> {
+  const { user, response } = await requireUser();
+  if (response) return { user: null, response };
+  if (user.accountType !== expected) {
+    return { user: null, response: jsonError(403, "Không có quyền truy cập") };
+  }
+  return { user, response: null };
 }
 
 /**

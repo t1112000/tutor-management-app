@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { navItems } from "./nav-items";
+import { navItemsFor } from "./nav-items";
+import type { AccountType } from "@/lib/db/models/User";
 
-export default function BottomNav() {
+interface BottomNavProps {
+  accountType: AccountType;
+}
+
+export default function BottomNav({ accountType }: BottomNavProps) {
   const pathname = usePathname();
+  const navItems = navItemsFor(accountType);
 
   const activeIndex = navItems.findIndex(({ href }) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href)

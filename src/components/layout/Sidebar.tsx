@@ -7,16 +7,19 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSignOut } from "@/hooks/use-sign-out";
-import { navItems } from "./nav-items";
+import { navItemsFor } from "./nav-items";
+import type { AccountType } from "@/lib/db/models/User";
 
 interface SidebarProps {
   user: { name?: string | null; email?: string | null; image?: string | null };
+  accountType: AccountType;
 }
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, accountType }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
   const { signOut, signingOut } = useSignOut();
+  const navItems = navItemsFor(accountType);
 
   useEffect(() => {
     try {
@@ -50,7 +53,9 @@ export default function Sidebar({ user }: SidebarProps) {
           <Image src="/logo-myclass.webp" alt="MyClass" width={36} height={36} className="rounded-lg shrink-0" />
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-sm font-semibold text-[#2C1820] leading-tight truncate">MyClass</span>
-            <span className="text-[11px] text-[#A87888] leading-tight truncate">Quản lý dạy học</span>
+            <span className="text-[11px] text-[#A87888] leading-tight truncate">
+              {accountType === "tutor" ? "Quản lý dạy học" : "Quản lý bán hàng"}
+            </span>
           </div>
           <button
             onClick={toggle}
@@ -124,7 +129,9 @@ export default function Sidebar({ user }: SidebarProps) {
                 <span className="text-[13px] font-medium text-[#2C1820] truncate leading-tight">
                   {user.name ?? user.email ?? "Người dùng"}
                 </span>
-                <span className="text-[11px] text-[#A87888] leading-tight">Giáo viên</span>
+                <span className="text-[11px] text-[#A87888] leading-tight">
+                  {accountType === "tutor" ? "Giáo viên" : "Người bán"}
+                </span>
               </div>
               <button
                 onClick={signOut}

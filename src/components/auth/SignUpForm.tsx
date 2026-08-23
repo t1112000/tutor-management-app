@@ -5,12 +5,16 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Lock, Loader2 } from "lucide-react";
+import { User, Lock, UserCircle, Loader2 } from "lucide-react";
 
-export default function SignInForm() {
+type AccountType = "tutor" | "reseller";
+
+export default function SignUpForm() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [accountType, setAccountType] = useState<AccountType>("tutor");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,13 +23,24 @@ export default function SignInForm() {
     setError("");
     setLoading(true);
     try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, accountType }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Có lỗi xảy ra" }));
+        setError(body.error ?? "Có lỗi xảy ra");
+        return;
+      }
+
       const result = await signIn("credentials", { email, password, redirect: false });
       if (result?.error) {
-        setError("Email hoặc mật khẩu không đúng.");
-      } else {
-        router.push("/");
-        router.refresh();
+        setError("Đăng ký thành công nhưng đăng nhập thất bại, vui lòng đăng nhập lại.");
+        return;
       }
+      router.push("/");
+      router.refresh();
     } catch {
       setError("Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
@@ -59,25 +74,40 @@ export default function SignInForm() {
           boxShadow: "0 24px 64px rgba(200,80,100,0.12), 0 4px 16px rgba(200,80,100,0.08)",
         }}
       >
-        {/* Logo — the image already contains "MyClass" text */}
-        <div className="flex flex-col items-center" style={{ marginBottom: "32px" }}>
+        <div className="flex flex-col items-center" style={{ marginBottom: "28px" }}>
           <Image
             src="/logo-myclass.webp"
             alt="MyClass"
             width={640}
             height={427}
-            style={{ width: "160px", height: "auto", marginBottom: "6px" }}
+            style={{ width: "140px", height: "auto", marginBottom: "6px" }}
           />
           <p style={{ fontSize: "13px", color: "#A87888", marginTop: "2px" }}>
-            Quản lý dạy học thông minh
+            Tạo tài khoản mới
           </p>
         </div>
 
-        {/* Fields */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px" }}>
           <div>
             <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: "#6B4858", marginBottom: "6px" }}>
-              Email / Số điện thoại
+              Họ tên
+            </label>
+            <div className="relative">
+              <UserCircle size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#A87888" }} />
+              <input
+                type="text"
+                placeholder="Nguyễn Văn A"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: "#6B4858", marginBottom: "6px" }}>
+              Email
             </label>
             <div className="relative">
               <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#A87888" }} />
@@ -88,8 +118,6 @@ export default function SignInForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = "#E8788A"; e.target.style.boxShadow = "0 0 0 2px rgba(232,120,138,0.15)"; }}
-                onBlur={(e) => { e.target.style.borderColor = "#F4D8DE"; e.target.style.boxShadow = "none"; }}
               />
             </div>
           </div>
@@ -102,14 +130,56 @@ export default function SignInForm() {
               <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#A87888" }} />
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Tối thiểu 6 ký tự"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
                 style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = "#E8788A"; e.target.style.boxShadow = "0 0 0 2px rgba(232,120,138,0.15)"; }}
-                onBlur={(e) => { e.target.style.borderColor = "#F4D8DE"; e.target.style.boxShadow = "none"; }}
               />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: "#6B4858", marginBottom: "8px" }}>
+              Loại tài khoản
+            </label>
+            <div style={{ display: "flex", gap: "10px" }}>
+              {(
+                [
+                  { value: "tutor", label: "Dạy học" },
+                  { value: "reseller", label: "Bán hàng" },
+                ] as const
+              ).map((opt) => (
+                <label
+                  key={opt.value}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "9px 0",
+                    borderRadius: "12px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    border: accountType === opt.value ? "1px solid #E8788A" : "1px solid #F4D8DE",
+                    background: accountType === opt.value ? "rgba(232,120,138,0.10)" : "#FFF8FA",
+                    color: accountType === opt.value ? "#E8788A" : "#6B4858",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="accountType"
+                    value={opt.value}
+                    checked={accountType === opt.value}
+                    onChange={() => setAccountType(opt.value)}
+                    style={{ display: "none" }}
+                  />
+                  {opt.label}
+                </label>
+              ))}
             </div>
           </div>
 
@@ -141,28 +211,15 @@ export default function SignInForm() {
             }}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            Đăng nhập
+            Đăng ký
           </button>
         </form>
 
-        <div style={{ textAlign: "center", fontSize: "12px", color: "#A87888", display: "flex", flexDirection: "column", gap: "8px" }}>
-          <span>
-            Quên mật khẩu?{" "}
-            <a
-              href="https://www.facebook.com/yuumiiiiiiii/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#E8788A", fontWeight: 600, cursor: "pointer", textDecoration: "none" }}
-            >
-              Liên hệ hỗ trợ
-            </a>
-          </span>
-          <span>
-            Chưa có tài khoản?{" "}
-            <Link href="/signup" style={{ color: "#E8788A", fontWeight: 600, textDecoration: "none" }}>
-              Đăng ký
-            </Link>
-          </span>
+        <div style={{ textAlign: "center", fontSize: "12px", color: "#A87888" }}>
+          Đã có tài khoản?{" "}
+          <Link href="/signin" style={{ color: "#E8788A", fontWeight: 600, textDecoration: "none" }}>
+            Đăng nhập
+          </Link>
         </div>
       </div>
     </div>
