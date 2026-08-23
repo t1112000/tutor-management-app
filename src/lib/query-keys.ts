@@ -20,4 +20,9 @@ export const keys = {
     list:   (status = 'available', type = '') => ['accounts', 'list', status, type] as const,
     detail: (id: number) => ['accounts', id] as const,
   },
+  customers: {
+    all:    ()           => ['customers'] as const,
+    list:   (q = '')     => ['customers', 'list', q] as const,
+    detail: (id: number) => ['customers', id] as const,
+  },
 } as const
