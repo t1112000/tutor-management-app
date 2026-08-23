@@ -31,7 +31,7 @@ schemas in `validations.ts`. There is no component or route test harness.
 
 NextAuth v5 with credentials provider (email + bcrypt password). Auth lives in `auth.ts` (full config) and `auth.config.ts` (edge-safe subset used by middleware). Sessions are JWT-based. `src/middleware.ts` must stay under `src/` — Next.js ignores a root-level `middleware.ts` when the app lives in `src/app`. Its matcher excludes `/api` (those answer 401 JSON) and any path with a file extension (static assets and `/sw.js`).
 
-Every API route starts with `requireUser()` from `src/lib/auth-helpers.ts`, then reaches data **only** through `findOwnedStudent()` / `findOwnedBill()` from the same file — never a bare `findByPk`. Both scope by `createdBy` and filter `deletedAt`. Mutating routes parse their body with `parseBody(req, schema)`, and every error response is `{ error: string }` via `jsonError()`.
+Most tutor API routes start with `requireUser()` from `src/lib/auth-helpers.ts`; reseller inventory, customer, and order routes use `requireAccountType("reseller")`. Routes then reach data **only** through `findOwnedStudent()` / `findOwnedBill()` / `findOwnedAccount()` / `findOwnedCustomer()` / `findOwnedOrder()` from the same file — never a bare `findByPk`. Ownership helpers scope by `createdBy` and filter `deletedAt`. Mutating routes parse their body with `parseBody(req, schema)`, and every error response is `{ error: string }` via `jsonError()`.
 
 ### Page pattern
 
@@ -46,7 +46,9 @@ Data model:
 - `Student` → `StudentSchedule` (recurring weekly slots: `dayOfWeek`, `startTime`/`endTime` as `HH:MM` strings)
 - `Student` → `Bill` → `BillSession` (generated sessions from `generateSessions()`)
 - `Bill.status`: `"unpaid"` | `"paid"`
-- `User` owns `Account`s (reseller inventory, `createdBy` FK like Student/Bill): subscription accounts (Netflix, ChatGPT Plus) being resold, `status`: `"available"` | `"sold"`. Credentials (`passwordEncrypted`, `twoFactorSecretEncrypted`) are AES-256-GCM-encrypted at rest — see `src/lib/crypto.ts`. Account routes gate on `requireAccountType("reseller")` rather than plain `requireUser()`.
+- `User` owns `Account`s (reseller inventory, `createdBy` FK like Student/Bill): subscription accounts (Netflix, ChatGPT Plus) being resold, `status`: `"available"` | `"sold"`. Credentials (`passwordEncrypted`, `twoFactorSecretEncrypted`) are AES-256-GCM-encrypted at rest — see `src/lib/crypto.ts`. `Account.status` is written by orders (sold on create/replace; the current assignment's account returns to available on order delete). List GETs omit `password` / `twoFactorSecret`; plaintext exists only on detail GETs and `POST /api/accounts/copy-text` / `POST /api/orders/:id/copy-text`.
+- `User` owns `Customer`s (reseller, `createdBy` FK). A customer has optional contacts (`CustomerContact`: at most one of facebook / zalo / discord / telegram).
+- `Order` → `OrderLine` → `OrderLineAssignment` → `Account`. Warranty is per line: `"kbh"` (no warranty), `"bhf"` (until first assigned account expiry), `"days"` (N days from create). Swap logs a new assignment; the previous account stays sold.
 
 `Student` and `Bill` are soft-deleted (`deletedAt`) and neither model is `paranoid`, so **every** query must filter `deletedAt: null` itself — the ownership helpers do this for you.
 

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where pra
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-23
+
+### Added
+
+- Reseller customers ("Khách hàng"): name plus optional Facebook / Zalo / Discord / Telegram (one per type)
+- Reseller orders ("Đơn hàng"): attach a customer and one or more inventory accounts, per-line price and warranty (KBH = no warranty, BHF = until first account expiry, or N days from create)
+- Swap a dead account on a still-warranted line; previous accounts stay sold and are logged on the line
+- Server `POST /api/accounts/copy-text` and `POST /api/orders/:id/copy-text` for clipboard blocks
+
+### Changed
+
+- `GET /api/accounts` no longer returns `password` / `twoFactorSecret` (use detail or copy-text)
+- Inventory account status is read-only in the UI; sold/available is driven by orders
+
+### Notes
+
+- Third step of the multi-tenant/reseller rollout. Reseller `/report` remains the tutor report (deferred).
+
 ## [0.4.0] - 2026-08-23
 
 ### Added
@@ -27,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where pra
 
 ### Notes
 
-- Second step of the multi-tenant/reseller rollout (after v0.3.0's accountType/signup foundation); Order/Customer (warranty tracking, KBH/BHF) is the remaining planned sub-project
+- Second step of the multi-tenant/reseller rollout (after v0.3.0's accountType/signup foundation); Order/Customer (warranty tracking, KBH/BHF) completed in 0.5.0
 
 ## [0.3.0] - 2026-08-23
 

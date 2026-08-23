@@ -1,7 +1,7 @@
 # Reseller Orders & Customers — Design Spec
 
 **Date:** 2026-08-23
-**Status:** Draft (awaiting user review)
+**Status:** Approved
 **Depends on:** Sub-project 2 inventory (`docs/superpowers/specs/2026-08-23-reseller-inventory-design.md`), shipped on `feat/reseller-inventory`
 
 ---
