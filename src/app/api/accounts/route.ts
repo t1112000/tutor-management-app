@@ -1,34 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, parseBody } from "@/lib/auth-helpers";
+import { requireAccountType, parseBody, jsonError } from "@/lib/auth-helpers";
 import { Account } from "@/lib/db/index";
 import { accountSchema } from "@/lib/validations";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { encrypt } from "@/lib/crypto";
+import { toAccountResponse } from "@/lib/accountResponse";
 import type { WhereOptions } from "sequelize";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function toResponse(account: Account) {
-  return {
-    id: account.id,
-    type: account.type,
-    email: account.email,
-    password: decrypt(account.passwordEncrypted),
-    twoFactorSecret: account.twoFactorSecretEncrypted ? decrypt(account.twoFactorSecretEncrypted) : null,
-    expiryDate: account.expiryDate,
-    quotaPercent: account.quotaPercent,
-    status: account.status,
-    notes: account.notes,
-    createdAt: account.createdAt,
-  };
-}
+const VALID_STATUSES = ["available", "sold", "all"] as const;
+const VALID_TYPES = ["netflix", "gpt_plus"] as const;
 
 export async function GET(req: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireAccountType("reseller");
   if (response) return response;
 
   const status = req.nextUrl.searchParams.get("status") ?? "available";
   const type = req.nextUrl.searchParams.get("type");
+
+  if (!VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
+    return jsonError(400, "status không hợp lệ");
+  }
+  if (type !== null && !VALID_TYPES.includes(type as (typeof VALID_TYPES)[number])) {
+    return jsonError(400, "type không hợp lệ");
+  }
 
   const where: WhereOptions = {
     createdBy: user.id,
@@ -38,11 +34,11 @@ export async function GET(req: NextRequest) {
   };
 
   const accounts = await Account.findAll({ where, order: [["createdAt", "DESC"]] });
-  return NextResponse.json(accounts.map(toResponse));
+  return NextResponse.json(accounts.map(toAccountResponse));
 }
 
 export async function POST(req: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireAccountType("reseller");
   if (response) return response;
 
   const { value, response: badBody } = await parseBody(req, accountSchema);
@@ -59,5 +55,5 @@ export async function POST(req: NextRequest) {
     createdBy: user.id,
   });
 
-  return NextResponse.json(toResponse(account), { status: 201 });
+  return NextResponse.json(toAccountResponse(account), { status: 201 });
 }

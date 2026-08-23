@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, parseBody, jsonError } from "@/lib/auth-helpers";
+import { requireAccountType, parseBody, jsonError } from "@/lib/auth-helpers";
 import { Account, sequelize } from "@/lib/db/index";
 import { accountImportSchema } from "@/lib/validations";
 import { parseAccountImportText } from "@/lib/accountImport";
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireAccountType("reseller");
   if (response) return response;
 
   const { value, response: badBody } = await parseBody(req, accountImportSchema);

@@ -91,7 +91,7 @@ export default function InventoryClient() {
           {(["available", "sold", "all"] as const).map((s) => (
             <button
               key={s}
-              onClick={() => setStatus(s)}
+              onClick={() => { setStatus(s); setSelected(new Set()); }}
               style={{
                 padding: "6px 14px", borderRadius: "9999px", fontSize: "13px", cursor: "pointer",
                 ...(status === s
@@ -106,7 +106,7 @@ export default function InventoryClient() {
           {(["", "netflix", "gpt_plus"] as const).map((t) => (
             <button
               key={t || "all-types"}
-              onClick={() => setType(t)}
+              onClick={() => { setType(t); setSelected(new Set()); }}
               style={{
                 padding: "6px 14px", borderRadius: "9999px", fontSize: "13px", cursor: "pointer",
                 ...(type === t

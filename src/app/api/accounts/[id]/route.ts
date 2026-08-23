@@ -1,40 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, parseBody, findOwnedAccount, jsonError } from "@/lib/auth-helpers";
+import { requireAccountType, parseBody, findOwnedAccount, jsonError } from "@/lib/auth-helpers";
 import { accountUpdateSchema } from "@/lib/validations";
-import { encrypt, decrypt } from "@/lib/crypto";
-import type { Account } from "@/lib/db/index";
+import { encrypt } from "@/lib/crypto";
+import { toAccountResponse } from "@/lib/accountResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function toResponse(account: Account) {
-  return {
-    id: account.id,
-    type: account.type,
-    email: account.email,
-    password: decrypt(account.passwordEncrypted),
-    twoFactorSecret: account.twoFactorSecretEncrypted ? decrypt(account.twoFactorSecretEncrypted) : null,
-    expiryDate: account.expiryDate,
-    quotaPercent: account.quotaPercent,
-    status: account.status,
-    notes: account.notes,
-    createdAt: account.createdAt,
-  };
-}
-
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireAccountType("reseller");
   if (response) return response;
 
   const { id } = await params;
   const account = await findOwnedAccount(user.id, id);
   if (!account) return jsonError(404, "Không tìm thấy tài khoản");
 
-  return NextResponse.json(toResponse(account));
+  return NextResponse.json(toAccountResponse(account));
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireAccountType("reseller");
   if (response) return response;
 
   const { id } = await params;
@@ -55,11 +40,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (value.notes !== undefined) account.notes = value.notes;
 
   await account.save();
-  return NextResponse.json(toResponse(account));
+  return NextResponse.json(toAccountResponse(account));
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireAccountType("reseller");
   if (response) return response;
 
   const { id } = await params;

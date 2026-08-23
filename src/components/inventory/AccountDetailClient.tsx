@@ -15,6 +15,7 @@ import { useAccount, useUpdateAccount, useDeleteAccount } from "@/hooks/queries/
 import { buildAccountCopyText } from "@/lib/accountCopyText";
 
 const TYPE_LABELS = { netflix: "Netflix", gpt_plus: "GPT Plus" } as const;
+const STATUS_LABELS = { available: "Còn hàng", sold: "Đã bán" } as const;
 
 const inputStyle: React.CSSProperties = {
   width: "100%", background: "#FFF8FA", border: "1px solid #F4D8DE",
@@ -34,7 +35,7 @@ export default function AccountDetailClient({ accountId }: Props) {
 
   const [editing, setEditing] = useState(false);
   const [revealed, setRevealed] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", twoFactorSecret: "", expiryDate: "", quotaPercent: "", notes: "" });
+  const [form, setForm] = useState({ email: "", password: "", twoFactorSecret: "", expiryDate: "", quotaPercent: "", notes: "", status: "available" as "available" | "sold" });
 
   if (isLoading) return <div style={{ padding: "32px", textAlign: "center", color: "#A87888" }}>Đang tải...</div>;
   if (isError || !account) return <QueryErrorState message="Không tải được tài khoản" onRetry={() => refetch()} />;
@@ -48,6 +49,7 @@ export default function AccountDetailClient({ accountId }: Props) {
       expiryDate: account.expiryDate,
       quotaPercent: account.quotaPercent !== null ? String(account.quotaPercent) : "",
       notes: account.notes ?? "",
+      status: account.status,
     });
     setEditing(true);
   }
@@ -60,6 +62,7 @@ export default function AccountDetailClient({ accountId }: Props) {
         twoFactorSecret: form.twoFactorSecret.trim() || null,
         expiryDate: form.expiryDate,
         quotaPercent: account?.type === "gpt_plus" && form.quotaPercent ? Number(form.quotaPercent) : null,
+        status: form.status,
         notes: form.notes.trim() || null,
       },
       {
@@ -125,6 +128,31 @@ export default function AccountDetailClient({ accountId }: Props) {
         <div>
           <div style={{ fontSize: "11px", color: "#A87888", marginBottom: "4px" }}>Loại</div>
           <div style={{ fontSize: "14px", color: "#2C1820" }}>{TYPE_LABELS[account.type]}</div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: "11px", color: "#A87888", marginBottom: "4px" }}>Trạng thái</div>
+          {editing ? (
+            <div style={{ display: "flex", gap: "8px" }}>
+              {(["available", "sold"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setForm({ ...form, status: s })}
+                  style={{
+                    flex: 1, padding: "8px 0", borderRadius: "6px", cursor: "pointer", fontSize: "13px",
+                    ...(form.status === s
+                      ? { background: "rgba(232,120,138,0.12)", color: "#E8788A", border: "1px solid rgba(232,120,138,0.3)", fontWeight: 600 }
+                      : { background: "#FFF8FA", color: "#A87888", border: "1px solid #F4D8DE", fontWeight: 400 }),
+                  }}
+                >
+                  {STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: "14px", color: "#2C1820" }}>{STATUS_LABELS[account.status]}</div>
+          )}
         </div>
 
         <div>
