@@ -71,13 +71,86 @@ export const accountUpdateSchema = z.object({
   twoFactorSecret: z.string().nullable().optional(),
   expiryDate: dateStr.optional(),
   quotaPercent: z.number().int().min(0).max(100).nullable().optional(),
-  status: z.enum(["available", "sold"]).optional(),
   notes: z.string().nullable().optional(),
 });
 
 export const accountImportSchema = z.object({
   type: z.enum(["netflix", "gpt_plus"]),
   text: z.string().min(1, "Danh sách không được trống"),
+});
+
+export const customerContactType = z.enum(["facebook", "zalo", "discord", "telegram"]);
+
+export const customerContactSchema = z.object({
+  type: customerContactType,
+  value: z.string().trim().min(1, "Thông tin liên hệ không được trống"),
+});
+
+const customerObjectSchema = z.object({
+  name: z.string().trim().min(1, "Tên khách không được trống"),
+  notes: z.string().optional(),
+  contacts: z.array(customerContactSchema).optional(),
+});
+
+function uniqueContactTypes(
+  val: { contacts?: { type: z.infer<typeof customerContactType> }[] },
+  ctx: z.RefinementCtx
+) {
+  const types = (val.contacts ?? []).map((c) => c.type);
+  if (new Set(types).size !== types.length) {
+    ctx.addIssue({ code: "custom", message: "Mỗi loại liên hệ chỉ được một", path: ["contacts"] });
+  }
+}
+
+export const customerSchema = customerObjectSchema.superRefine(uniqueContactTypes);
+
+/** superRefine wraps a ZodEffects, which has no .partial(). */
+export const customerUpdateSchema = customerObjectSchema.partial().extend({
+  contacts: z.array(customerContactSchema).optional(),
+}).superRefine(uniqueContactTypes);
+
+export const orderLineInputSchema = z.object({
+  accountId: z.number().int().positive(),
+  warrantyType: z.enum(["kbh", "bhf", "days"]),
+  warrantyDays: z.number().int().min(1).optional(),
+  price: z.number().int().min(0),
+}).superRefine((val, ctx) => {
+  if (val.warrantyType === "days" && val.warrantyDays == null) {
+    ctx.addIssue({ code: "custom", message: "Chọn số ngày bảo hành", path: ["warrantyDays"] });
+  }
+  if (val.warrantyType !== "days" && val.warrantyDays != null) {
+    ctx.addIssue({ code: "custom", message: "Số ngày chỉ dùng với loại Theo ngày", path: ["warrantyDays"] });
+  }
+});
+
+export const orderCreateSchema = z.object({
+  customerId: z.number().int().positive().optional(),
+  customer: customerSchema.optional(),
+  notes: z.string().optional(),
+  lines: z.array(orderLineInputSchema).min(1, "Chọn ít nhất một tài khoản"),
+}).superRefine((val, ctx) => {
+  if (!val.customerId && !val.customer) {
+    ctx.addIssue({ code: "custom", message: "Chọn khách hoặc tạo khách mới", path: ["customerId"] });
+  }
+  if (val.customerId && val.customer) {
+    ctx.addIssue({ code: "custom", message: "Chỉ chọn khách có sẵn hoặc tạo mới, không gửi cả hai", path: ["customer"] });
+  }
+  const ids = val.lines.map((l) => l.accountId);
+  if (new Set(ids).size !== ids.length) {
+    ctx.addIssue({ code: "custom", message: "Trùng tài khoản trong một đơn", path: ["lines"] });
+  }
+});
+
+export const orderReplaceSchema = z.object({
+  accountId: z.number().int().positive(),
+});
+
+export const copyTextSchema = z.object({
+  ids: z.array(z.number().int().positive()).min(1),
+});
+
+export const orderCopyTextSchema = z.object({
+  ids: z.array(z.number().int().positive()).optional(),
 });
 
 export const sessionCreateSchema = z.object({

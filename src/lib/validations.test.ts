@@ -5,7 +5,11 @@ import {
   accountImportSchema,
   billSchema,
   billUpdateSchema,
+  copyTextSchema,
+  customerSchema,
   dateStr,
+  orderCopyTextSchema,
+  orderCreateSchema,
   pushSubscriptionSchema,
   scheduleSchema,
   sessionUpdateSchema,
@@ -181,15 +185,16 @@ describe("accountSchema", () => {
 
 describe("accountUpdateSchema", () => {
   it("accepts a partial update", () => {
-    expect(accountUpdateSchema.safeParse({ status: "sold" }).success).toBe(true);
+    expect(accountUpdateSchema.safeParse({ email: "a@b.com" }).success).toBe(true);
   });
 
   it("accepts clearing twoFactorSecret with null", () => {
     expect(accountUpdateSchema.safeParse({ twoFactorSecret: null }).success).toBe(true);
   });
 
-  it("rejects an invalid status value", () => {
-    expect(accountUpdateSchema.safeParse({ status: "reserved" }).success).toBe(false);
+  it("strips status (status is not client-writable)", () => {
+    const parsed = accountUpdateSchema.parse({ status: "sold", email: "a@b.com" });
+    expect(parsed).toEqual({ email: "a@b.com" });
   });
 });
 
@@ -200,5 +205,111 @@ describe("accountImportSchema", () => {
 
   it("rejects empty text", () => {
     expect(accountImportSchema.safeParse({ type: "netflix", text: "" }).success).toBe(false);
+  });
+});
+
+describe("customerSchema", () => {
+  it("accepts name only", () => {
+    expect(customerSchema.safeParse({ name: "An" }).success).toBe(true);
+  });
+
+  it("rejects empty name", () => {
+    expect(customerSchema.safeParse({ name: "  " }).success).toBe(false);
+  });
+
+  it("rejects two contacts of the same type", () => {
+    expect(
+      customerSchema.safeParse({
+        name: "An",
+        contacts: [
+          { type: "zalo", value: "0901" },
+          { type: "zalo", value: "0902" },
+        ],
+      }).success
+    ).toBe(false);
+  });
+
+  it("accepts one of each contact type", () => {
+    expect(
+      customerSchema.safeParse({
+        name: "An",
+        contacts: [
+          { type: "facebook", value: "https://facebook.com/an" },
+          { type: "zalo", value: "0901234567" },
+          { type: "discord", value: "an#1234" },
+          { type: "telegram", value: "@an" },
+        ],
+      }).success
+    ).toBe(true);
+  });
+});
+
+describe("orderCreateSchema", () => {
+  const line = { accountId: 1, warrantyType: "kbh" as const, price: 50000 };
+
+  it("requires customerId or customer", () => {
+    expect(orderCreateSchema.safeParse({ lines: [line] }).success).toBe(false);
+  });
+
+  it("rejects both customerId and customer", () => {
+    expect(
+      orderCreateSchema.safeParse({ customerId: 1, customer: { name: "An" }, lines: [line] }).success
+    ).toBe(false);
+  });
+
+  it("accepts existing customerId", () => {
+    expect(orderCreateSchema.safeParse({ customerId: 1, lines: [line] }).success).toBe(true);
+  });
+
+  it("accepts inline customer", () => {
+    expect(orderCreateSchema.safeParse({ customer: { name: "An" }, lines: [line] }).success).toBe(true);
+  });
+
+  it("requires warrantyDays for type days", () => {
+    expect(
+      orderCreateSchema.safeParse({
+        customerId: 1,
+        lines: [{ accountId: 1, warrantyType: "days", price: 0 }],
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects warrantyDays unless type is days", () => {
+    expect(
+      orderCreateSchema.safeParse({
+        customerId: 1,
+        lines: [{ accountId: 1, warrantyType: "kbh", warrantyDays: 7, price: 0 }],
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects duplicate accountId in lines", () => {
+    expect(
+      orderCreateSchema.safeParse({
+        customerId: 1,
+        lines: [line, { ...line }],
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects empty lines", () => {
+    expect(orderCreateSchema.safeParse({ customerId: 1, lines: [] }).success).toBe(false);
+  });
+});
+
+describe("copyTextSchema", () => {
+  it("requires at least one id", () => {
+    expect(copyTextSchema.safeParse({ ids: [] }).success).toBe(false);
+    expect(copyTextSchema.safeParse({ ids: [1] }).success).toBe(true);
+  });
+});
+
+describe("orderCopyTextSchema", () => {
+  it("allows omitted ids", () => {
+    expect(orderCopyTextSchema.safeParse({}).success).toBe(true);
+  });
+
+  it("allows a list of ids", () => {
+    expect(orderCopyTextSchema.safeParse({ ids: [1, 2] }).success).toBe(true);
   });
 });
