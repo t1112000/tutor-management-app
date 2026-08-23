@@ -15,13 +15,17 @@ export type ParseAccountImportResult =
 const emailField = z.string().email();
 
 export function parseAccountImportText(text: string): ParseAccountImportResult {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (lines.length === 0) return { ok: false, errors: ["Danh sách không được trống"] };
+  const rawLines = text.split("\n");
+  if (rawLines.every((l) => l.trim() === "")) {
+    return { ok: false, errors: ["Danh sách không được trống"] };
+  }
 
   const errors: string[] = [];
   const accounts: ParsedAccountLine[] = [];
 
-  lines.forEach((line, index) => {
+  rawLines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line) return; // blank line, skip silently
     const lineNumber = index + 1;
     const parts = line.split("|");
     if (parts.length !== 4) {

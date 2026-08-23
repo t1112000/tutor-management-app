@@ -69,4 +69,12 @@ describe("parseAccountImportText", () => {
     const result = parseAccountImportText("   \n  \n");
     expect(result.ok).toBe(false);
   });
+
+  it("numbers lines correctly when a blank line precedes an error", () => {
+    const text = "\nnot-an-email|Pass123||2027-01-15";
+    const result = parseAccountImportText(text);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected error");
+    expect(result.errors[0]).toContain("Dòng 2");
+  });
 });
