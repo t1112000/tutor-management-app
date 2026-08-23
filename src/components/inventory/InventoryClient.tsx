@@ -8,6 +8,8 @@ import { QueryErrorState } from "@/components/ui/query-error";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useAccounts, type InventoryAccount } from "@/hooks/queries/use-accounts";
 import { buildAccountCopyText } from "@/lib/accountCopyText";
+import AddAccountDialog from "./AddAccountDialog";
+import ImportAccountsDialog from "./ImportAccountsDialog";
 
 const TYPE_LABELS: Record<InventoryAccount["type"], string> = {
   netflix: "Netflix",
@@ -167,11 +169,8 @@ export default function InventoryClient() {
         )}
       </div>
 
-      {/* AddAccountDialog / ImportAccountsDialog mounted by Task 11 */}
-      <div data-testid="inventory-dialogs-slot" hidden>
-        {String(showAdd)}
-        {String(showImport)}
-      </div>
+      <AddAccountDialog open={showAdd} onOpenChange={setShowAdd} onCreated={() => setShowAdd(false)} />
+      <ImportAccountsDialog open={showImport} onOpenChange={setShowImport} onImported={() => setShowImport(false)} />
     </div>
   );
 }
