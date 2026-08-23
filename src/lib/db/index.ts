@@ -5,6 +5,8 @@ import { StudentSchedule, initStudentSchedule } from "./models/StudentSchedule";
 import { Bill, initBill } from "./models/Bill";
 import { BillSession, initBillSession } from "./models/BillSession";
 import { Account, initAccount } from "./models/Account";
+import { Customer, initCustomer } from "./models/Customer";
+import { CustomerContact, initCustomerContact } from "./models/CustomerContact";
 
 // Guard per class instance, not per global flag.
 // Next.js can produce multiple webpack chunks each with a fresh class but the
@@ -17,6 +19,8 @@ if (!(User as any).sequelize) {
   initBill(sequelize);
   initBillSession(sequelize);
   initAccount(sequelize);
+  initCustomer(sequelize);
+  initCustomerContact(sequelize);
 
   // Associations — wrapped to tolerate duplicate calls across HMR reloads
   try {
@@ -35,9 +39,14 @@ if (!(User as any).sequelize) {
 
     User.hasMany(Account, { foreignKey: "createdBy", as: "accounts" });
     Account.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+    User.hasMany(Customer, { foreignKey: "createdBy", as: "customers" });
+    Customer.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+    Customer.hasMany(CustomerContact, { foreignKey: "customerId", as: "contacts" });
+    CustomerContact.belongsTo(Customer, { foreignKey: "customerId", as: "customer" });
   } catch {
     // already associated (HMR reload) — safe to ignore
   }
 }
 
-export { sequelize, User, Student, StudentSchedule, Bill, BillSession, Account };
+export { sequelize, User, Student, StudentSchedule, Bill, BillSession, Account, Customer, CustomerContact };
