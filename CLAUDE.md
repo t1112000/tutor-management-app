@@ -23,7 +23,7 @@ schemas in `validations.ts`. There is no component or route test harness.
 
 ## Architecture
 
-**MyClass** is a private tutoring management app built with Next.js 15 App Router. It is Vietnamese-language, single-user by design (a tutor manages their own students). Required `.env` values are validated at boot by `src/lib/env.ts` (called from `instrumentation.ts`); see `.env.example`.
+**MyClass** is a private tutoring management app built with Next.js 15 App Router. It is Vietnamese-language, single-user by design (a tutor manages their own students). Required `.env` values are validated at boot by `src/lib/env.ts` (called from `instrumentation.ts`); see `.env.example`. This includes `CREDENTIALS_ENCRYPTION_KEY` (32-byte hex, `openssl rand -hex 32`) — **losing or changing this key permanently breaks decryption of every stored reseller account credential**, so treat it as a durable secret, not disposable config. An existing deployment upgrading to a version that requires it must add it to `.env` before restarting or the app fails to boot.
 
 `NEXT_PUBLIC_*` variables are inlined at **build** time and `.env` is excluded from the Docker build context, so they are passed as build args in `docker-compose.yml` → `Dockerfile`. Adding a new one means editing all three places, or it silently ships as `undefined`.
 
@@ -46,6 +46,7 @@ Data model:
 - `Student` → `StudentSchedule` (recurring weekly slots: `dayOfWeek`, `startTime`/`endTime` as `HH:MM` strings)
 - `Student` → `Bill` → `BillSession` (generated sessions from `generateSessions()`)
 - `Bill.status`: `"unpaid"` | `"paid"`
+- `User` owns `Account`s (reseller inventory, `createdBy` FK like Student/Bill): subscription accounts (Netflix, ChatGPT Plus) being resold, `status`: `"available"` | `"sold"`. Credentials (`passwordEncrypted`, `twoFactorSecretEncrypted`) are AES-256-GCM-encrypted at rest — see `src/lib/crypto.ts`. Account routes gate on `requireAccountType("reseller")` rather than plain `requireUser()`.
 
 `Student` and `Bill` are soft-deleted (`deletedAt`) and neither model is `paranoid`, so **every** query must filter `deletedAt: null` itself — the ownership helpers do this for you.
 

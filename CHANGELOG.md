@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where pra
 - Full CRUD for inventory accounts, plus bulk paste-import (`email|password|2fa|expiry` per line, all-or-nothing validation)
 - Clipboard-copy action for a single account or multiple selected accounts, ready for reuse by the upcoming Order feature
 
+### Upgrading
+
+- New required env var: `CREDENTIALS_ENCRYPTION_KEY` (32-byte hex, used to encrypt reseller account credentials at rest). Existing deployments must add it to `.env` **before** restarting — the app now fails to boot without it (`assertEnv()` in `src/lib/env.ts`). Generate one with:
+
+  ```bash
+  openssl rand -hex 32
+  ```
+
+  Losing or changing this key after accounts have been created makes every stored credential permanently unrecoverable.
+
 ### Notes
 
 - Second step of the multi-tenant/reseller rollout (after v0.3.0's accountType/signup foundation); Order/Customer (warranty tracking, KBH/BHF) is the remaining planned sub-project

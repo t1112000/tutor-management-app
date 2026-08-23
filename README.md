@@ -115,6 +115,7 @@ See [`.env.example`](./.env.example). Required at runtime:
 - `DATABASE_URL`
 - `AUTH_SECRET`
 - `AUTH_TRUST_HOST` (typically `true` behind a reverse proxy)
+- `CREDENTIALS_ENCRYPTION_KEY` — 32-byte hex key (generate with `openssl rand -hex 32`) used to encrypt reseller account credentials (email/password/2FA secret on the `Account` model) at rest. **Losing or changing this key makes every stored credential permanently unrecoverable** — back it up like a secret, not like config. An existing deployment upgrading to a version that requires it must add it to `.env` before restarting, or the app will fail to boot (`assertEnv()` in `src/lib/env.ts`).
 
 Web push (optional but needed for reminders on device):
 
