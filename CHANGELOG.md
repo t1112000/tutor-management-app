@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where pra
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-23
+
+### Added
+
+- Reseller account inventory ("Kho tài khoản"): `Account` model for subscription accounts (Netflix, ChatGPT Plus) with AES-256-GCM-encrypted credentials
+- Full CRUD for inventory accounts, plus bulk paste-import (`email|password|2fa|expiry` per line, all-or-nothing validation)
+- Clipboard-copy action for a single account or multiple selected accounts, ready for reuse by the upcoming Order feature
+
+### Notes
+
+- Second step of the multi-tenant/reseller rollout (after v0.3.0's accountType/signup foundation); Order/Customer (warranty tracking, KBH/BHF) is the remaining planned sub-project
+
 ## [0.3.0] - 2026-08-23
 
 ### Added

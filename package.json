@@ -1,6 +1,6 @@
 {
   "name": "tutor-management-app",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "license": "MIT",
   "description": "MyClass — self-hosted private tutoring management (students, schedules, bills, calendar)",
