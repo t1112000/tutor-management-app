@@ -14,6 +14,6 @@ export const config = {
   //  - /api: those routes answer with a 401 JSON from requireUser(); redirecting
   //    them to an HTML signin page would break every fetch() error path.
   matcher: [
-    "/((?!api|_next|signin|not-authorized|.*\\..*).*)",
+    "/((?!api|_next|signin|signup|not-authorized|.*\\..*).*)",
   ],
 };
