@@ -42,9 +42,16 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         dehydrateOptions: {
           shouldDehydrateQuery: (query) => {
             if (query.state.status !== 'success') return false
+            const [scope, kind, term] = query.queryKey
+            // Don't persist plaintext credentials from order/account detail GETs.
+            if (
+              (scope === 'orders' || scope === 'accounts') &&
+              typeof kind === 'number'
+            ) {
+              return false
+            }
             // Don't persist every keystroke of the student search: each debounced
             // term becomes its own cache entry and is pure dead weight on disk.
-            const [scope, kind, term] = query.queryKey as [string, string, string]
             return !(scope === 'students' && kind === 'list' && !!term)
           },
         },

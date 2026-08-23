@@ -66,6 +66,7 @@ export function useReplaceOrderLine(orderId: number) {
         body: { accountId },
       }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.orders.all() })
       qc.invalidateQueries({ queryKey: keys.orders.detail(orderId) })
       qc.invalidateQueries({ queryKey: keys.accounts.all() })
     },
