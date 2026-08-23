@@ -13,7 +13,8 @@ import {
 import { QueryErrorState } from "@/components/ui/query-error";
 import { useCustomer, useUpdateCustomer, useDeleteCustomer } from "@/hooks/queries/use-customer";
 import type { CustomerContact, CustomerContactType } from "@/hooks/queries/use-customers";
-import { formatDateVN, formatMoneyVND } from "@/lib/time";
+import { formatInTimeZone } from "date-fns-tz";
+import { VN_TZ, formatDateVN, formatMoneyVND } from "@/lib/time";
 
 const CONTACT_TYPES = [
   { type: "facebook" as const, label: "Facebook" },
@@ -46,7 +47,7 @@ function contactsToForm(contacts: CustomerContact[]): Record<CustomerContactType
 }
 
 function formatOrderDate(createdAt: string): string {
-  return formatDateVN(createdAt.slice(0, 10));
+  return formatDateVN(formatInTimeZone(new Date(createdAt), VN_TZ, "yyyy-MM-dd"));
 }
 
 export default function CustomerDetailClient({ customerId }: Props) {
