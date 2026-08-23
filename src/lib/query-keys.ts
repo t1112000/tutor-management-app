@@ -25,4 +25,9 @@ export const keys = {
     list:   (q = '')     => ['customers', 'list', q] as const,
     detail: (id: number) => ['customers', id] as const,
   },
+  orders: {
+    all:    ()           => ['orders'] as const,
+    list:   (customerId = '') => ['orders', 'list', customerId] as const,
+    detail: (id: number) => ['orders', id] as const,
+  },
 } as const
