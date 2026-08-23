@@ -55,6 +55,31 @@ export const billUpdateSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
+export const accountSchema = z.object({
+  type: z.enum(["netflix", "gpt_plus"]),
+  email: z.string().email("Email không hợp lệ"),
+  password: z.string().min(1, "Mật khẩu không được trống"),
+  twoFactorSecret: z.string().optional(),
+  expiryDate: dateStr,
+  quotaPercent: z.number().int().min(0).max(100).optional(),
+  notes: z.string().optional(),
+});
+
+export const accountUpdateSchema = z.object({
+  email: z.string().email("Email không hợp lệ").optional(),
+  password: z.string().min(1, "Mật khẩu không được trống").optional(),
+  twoFactorSecret: z.string().nullable().optional(),
+  expiryDate: dateStr.optional(),
+  quotaPercent: z.number().int().min(0).max(100).nullable().optional(),
+  status: z.enum(["available", "sold"]).optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export const accountImportSchema = z.object({
+  type: z.enum(["netflix", "gpt_plus"]),
+  text: z.string().min(1, "Danh sách không được trống"),
+});
+
 export const sessionCreateSchema = z.object({
   scheduledDate: dateStr,
   startTime: timeStr,

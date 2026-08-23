@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  accountSchema,
+  accountUpdateSchema,
+  accountImportSchema,
   billSchema,
   billUpdateSchema,
   dateStr,
@@ -138,5 +141,64 @@ describe("pushSubscriptionSchema", () => {
 
   it("requires the encryption keys", () => {
     expect(pushSubscriptionSchema.safeParse({ endpoint: "https://fcm.googleapis.com/x" }).success).toBe(false);
+  });
+});
+
+describe("accountSchema", () => {
+  const valid = {
+    type: "netflix" as const,
+    email: "user@gmail.com",
+    password: "Pass123",
+    expiryDate: "2027-01-15",
+  };
+
+  it("accepts a minimal valid netflix account", () => {
+    expect(accountSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("accepts a gpt_plus account with quotaPercent and 2FA", () => {
+    const gpt = { ...valid, type: "gpt_plus" as const, twoFactorSecret: "ABCD1234", quotaPercent: 80 };
+    expect(accountSchema.safeParse(gpt).success).toBe(true);
+  });
+
+  it("rejects an invalid email", () => {
+    expect(accountSchema.safeParse({ ...valid, email: "not-an-email" }).success).toBe(false);
+  });
+
+  it("rejects an empty password", () => {
+    expect(accountSchema.safeParse({ ...valid, password: "" }).success).toBe(false);
+  });
+
+  it("rejects quotaPercent outside 0-100", () => {
+    expect(accountSchema.safeParse({ ...valid, quotaPercent: 150 }).success).toBe(false);
+    expect(accountSchema.safeParse({ ...valid, quotaPercent: -1 }).success).toBe(false);
+  });
+
+  it("rejects a type outside the fixed set", () => {
+    expect(accountSchema.safeParse({ ...valid, type: "hulu" }).success).toBe(false);
+  });
+});
+
+describe("accountUpdateSchema", () => {
+  it("accepts a partial update", () => {
+    expect(accountUpdateSchema.safeParse({ status: "sold" }).success).toBe(true);
+  });
+
+  it("accepts clearing twoFactorSecret with null", () => {
+    expect(accountUpdateSchema.safeParse({ twoFactorSecret: null }).success).toBe(true);
+  });
+
+  it("rejects an invalid status value", () => {
+    expect(accountUpdateSchema.safeParse({ status: "reserved" }).success).toBe(false);
+  });
+});
+
+describe("accountImportSchema", () => {
+  it("accepts a type and non-empty text", () => {
+    expect(accountImportSchema.safeParse({ type: "netflix", text: "a@b.com|p|2fa|2027-01-01" }).success).toBe(true);
+  });
+
+  it("rejects empty text", () => {
+    expect(accountImportSchema.safeParse({ type: "netflix", text: "" }).success).toBe(false);
   });
 });
