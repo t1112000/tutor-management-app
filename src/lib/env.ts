@@ -6,6 +6,9 @@ const envSchema = z.object({
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, "NEXT_PUBLIC_VAPID_PUBLIC_KEY is required"),
   VAPID_PRIVATE_KEY: z.string().min(1, "VAPID_PRIVATE_KEY is required"),
   VAPID_EMAIL: z.string().min(1, "VAPID_EMAIL is required"),
+  CREDENTIALS_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, "CREDENTIALS_ENCRYPTION_KEY phải là chuỗi hex 64 ký tự (32 byte)"),
 });
 
 /**
