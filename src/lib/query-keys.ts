@@ -15,4 +15,9 @@ export const keys = {
     month: (month: string) => ['report', 'month', month] as const,
     all: () => ['report', 'all'] as const,
   },
+  accounts: {
+    all:    ()           => ['accounts'] as const,
+    list:   (status = 'available', type = '') => ['accounts', 'list', status, type] as const,
+    detail: (id: number) => ['accounts', id] as const,
+  },
 } as const
