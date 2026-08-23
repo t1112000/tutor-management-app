@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError, type ZodTypeAny, type z } from "zod";
 import type { FindOptions } from "sequelize";
 import { auth } from "../../auth";
-import { Bill, Student, Account, Customer } from "@/lib/db/index";
+import { Bill, Student, Account, Customer, Order } from "@/lib/db/index";
 import type { AccountType } from "@/lib/db/models/User";
 
 export interface SessionUser {
@@ -150,6 +150,24 @@ export async function findOwnedCustomer(
     ...rest,
     where: {
       id: customerId,
+      createdBy: userId,
+      ...(includeDeleted ? {} : { deletedAt: null }),
+    },
+  });
+}
+
+export async function findOwnedOrder(
+  userId: number,
+  id: string | number,
+  options: Omit<FindOptions, "where"> & { includeDeleted?: boolean } = {}
+) {
+  const { includeDeleted = false, ...rest } = options;
+  const orderId = asId(id);
+  if (orderId === null) return null;
+  return Order.findOne({
+    ...rest,
+    where: {
+      id: orderId,
       createdBy: userId,
       ...(includeDeleted ? {} : { deletedAt: null }),
     },
