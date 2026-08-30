@@ -25,6 +25,7 @@ interface Session {
   bill: {
     id: number;
     status: "unpaid" | "paid";
+    notes: string | null;
     student: {
       name: string;
       subject: "english" | "chinese";
@@ -894,6 +895,7 @@ export default function CalendarClient() {
             ) : (
               sessionsForSelectedDay.map((session) => {
                 const color = getColor(session.bill.student);
+                const sessionNote = session.notes?.trim() || session.bill.notes?.trim();
                 return (
                   <div
                     key={session.id}
@@ -936,7 +938,7 @@ export default function CalendarClient() {
                     >
                       {session.bill.student.type === "online" ? "🌐 Online" : "📍 Offline"}
                     </div>
-                    {session.notes?.trim() && (
+                    {sessionNote && (
                       <div
                         style={{
                           fontSize: "12px",
@@ -945,7 +947,7 @@ export default function CalendarClient() {
                           lineHeight: 1.4,
                         }}
                       >
-                        {session.notes.trim()}
+                        {sessionNote}
                       </div>
                     )}
                   </div>
@@ -1111,6 +1113,7 @@ export default function CalendarClient() {
                         const topPx =
                           ((pt(s.startTime) - GRID_S * 60) / 60) * HOUR_H;
                         const color = getColor(s.bill.student);
+                        const sessionNote = s.notes?.trim() || s.bill.notes?.trim();
                         return (
                           <button
                             key={s.id}
@@ -1179,7 +1182,7 @@ export default function CalendarClient() {
                                 ? "🌐 Online"
                                 : "📍 Offline"}
                             </div>
-                            {s.notes?.trim() && (
+                            {sessionNote && (
                               <div
                                 style={{
                                   fontSize: "9px",
@@ -1192,7 +1195,7 @@ export default function CalendarClient() {
                                   WebkitLineClamp: 2,
                                 }}
                               >
-                                {s.notes.trim()}
+                                {sessionNote}
                               </div>
                             )}
                           </button>

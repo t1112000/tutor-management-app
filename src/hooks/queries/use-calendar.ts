@@ -12,6 +12,7 @@ export interface CalendarSession {
   bill: {
     id: number
     status: 'unpaid' | 'paid'
+    notes: string | null
     student: {
       id: number
       name: string
