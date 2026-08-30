@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
         as: "bill",
         where: { deletedAt: null, createdBy: user.id },
         required: true,
-        attributes: ["id", "status"],
+        attributes: ["id", "status", "notes"],
         include: [
           {
             model: Student,
@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
     bill: {
       id: s.bill!.id,
       status: s.bill!.status,
+      notes: s.bill!.notes,
       student: {
         id: s.bill!.student!.id,
         name: s.bill!.student!.name,
