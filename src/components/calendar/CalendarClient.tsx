@@ -941,13 +941,21 @@ export default function CalendarClient() {
                     {sessionNote && (
                       <div
                         style={{
-                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "6px",
                           color: "#6B4858",
-                          marginTop: "3px",
-                          lineHeight: 1.4,
+                          fontSize: "13px",
+                          lineHeight: 1.45,
+                          marginTop: "8px",
+                          paddingTop: "7px",
+                          borderTop: "1px solid #F4D8DE",
                         }}
                       >
-                        {sessionNote}
+                        <span style={{ flexShrink: 0, color: "#C45870", fontWeight: 700 }}>
+                          Ghi chú
+                        </span>
+                        <span>{sessionNote}</span>
                       </div>
                     )}
                   </div>
@@ -1184,18 +1192,29 @@ export default function CalendarClient() {
                             </div>
                             {sessionNote && (
                               <div
+                                aria-label={`Ghi chú: ${sessionNote}`}
                                 style={{
+                                  display: "flex",
+                                  gap: "3px",
+                                  alignItems: "baseline",
                                   fontSize: "9px",
-                                  color: "rgba(44,24,32,0.55)",
-                                  marginTop: "3px",
-                                  lineHeight: 1.35,
+                                  color: "rgba(44,24,32,0.78)",
+                                  marginTop: "5px",
+                                  paddingTop: "4px",
+                                  borderTop: "1px solid rgba(44,24,32,0.12)",
+                                  fontWeight: 600,
+                                  lineHeight: 1.25,
+                                  whiteSpace: "nowrap",
                                   overflow: "hidden",
-                                  display: "-webkit-box",
-                                  WebkitBoxOrient: "vertical",
-                                  WebkitLineClamp: 2,
+                                  textOverflow: "ellipsis",
                                 }}
                               >
-                                {sessionNote}
+                                <span style={{ flexShrink: 0, color: "rgba(44,24,32,0.6)" }}>
+                                  Ghi chú:
+                                </span>
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {sessionNote}
+                                </span>
                               </div>
                             )}
                           </button>
