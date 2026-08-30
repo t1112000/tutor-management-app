@@ -926,6 +926,28 @@ export default function CalendarClient() {
                     >
                       {session.startTime} – {session.endTime}
                     </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#8F6D79",
+                        marginTop: "7px",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {session.bill.student.type === "online" ? "🌐 Online" : "📍 Offline"}
+                    </div>
+                    {session.notes?.trim() && (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#6B4858",
+                          marginTop: "3px",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {session.notes.trim()}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1157,6 +1179,22 @@ export default function CalendarClient() {
                                 ? "🌐 Online"
                                 : "📍 Offline"}
                             </div>
+                            {s.notes?.trim() && (
+                              <div
+                                style={{
+                                  fontSize: "9px",
+                                  color: "rgba(44,24,32,0.55)",
+                                  marginTop: "3px",
+                                  lineHeight: 1.35,
+                                  overflow: "hidden",
+                                  display: "-webkit-box",
+                                  WebkitBoxOrient: "vertical",
+                                  WebkitLineClamp: 2,
+                                }}
+                              >
+                                {s.notes.trim()}
+                              </div>
+                            )}
                           </button>
                         );
                         })}
