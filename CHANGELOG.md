@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where pra
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-23
+
+### Added
+
+- Public sign-up (`/signup`, `POST /api/auth/signup`): email/password/name plus a permanent account-type choice (**Dạy học** / **Bán hàng**)
+- `User.accountType` (`tutor` | `reseller`), defaulting existing accounts to `tutor`
+- Account-type-aware navigation: reseller accounts see Kho tài khoản / Khách hàng / Đơn hàng in place of Học sinh / Lịch dạy (placeholder pages for now; full reseller workflow lands in a follow-up release)
+- Route-level account-type guard enforced in middleware (`auth.config.ts`), so a tutor and a reseller account can never reach each other's pages
+
+### Changed
+
+- `auth.ts` no longer duplicates the `jwt`/`session` callbacks — they now live in the shared, edge-safe `auth.config.ts` so both the Node auth instance and the edge middleware instance stay in sync on session shape
+
+### Notes
+
+- First step of a larger multi-tenant rollout: a reseller module (subscription-account inventory, customers, warranty-tracked orders) is planned as follow-up work on top of this foundation
+
 ## [0.2.0] - 2026-08-12
 
 ### Added

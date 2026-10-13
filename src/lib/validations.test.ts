@@ -6,6 +6,7 @@ import {
   pushSubscriptionSchema,
   scheduleSchema,
   sessionUpdateSchema,
+  signupSchema,
   timeStr,
 } from "./validations";
 
@@ -96,6 +97,27 @@ describe("billSchema", () => {
   it("rejects invalid session times nested in the array", () => {
     const bad = { ...valid, sessions: [{ ...valid.sessions[0], startTime: "99:00" }] };
     expect(billSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe("signupSchema", () => {
+  const valid = { email: "a@b.com", password: "123456", name: "Nguyễn Văn A", accountType: "tutor" as const };
+
+  it("accepts a well-formed signup for either account type", () => {
+    expect(signupSchema.safeParse(valid).success).toBe(true);
+    expect(signupSchema.safeParse({ ...valid, accountType: "reseller" }).success).toBe(true);
+  });
+
+  it("rejects an invalid email", () => {
+    expect(signupSchema.safeParse({ ...valid, email: "not-an-email" }).success).toBe(false);
+  });
+
+  it("rejects a too-short password", () => {
+    expect(signupSchema.safeParse({ ...valid, password: "123" }).success).toBe(false);
+  });
+
+  it("rejects an account type outside the fixed set", () => {
+    expect(signupSchema.safeParse({ ...valid, accountType: "admin" }).success).toBe(false);
   });
 });
 

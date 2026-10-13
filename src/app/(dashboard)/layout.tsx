@@ -14,15 +14,19 @@ export default async function DashboardLayout({
   if (!session) redirect("/signin");
 
   const dbUser = await User.findByPk(session.user.id);
+  const accountType = dbUser?.accountType ?? session.user.accountType;
 
   return (
     <div className="flex h-[100dvh]">
       <DailySplash />
-      <Sidebar user={{ ...session.user, name: dbUser?.name ?? session.user.name }} />
+      <Sidebar
+        user={{ ...session.user, name: dbUser?.name ?? session.user.name }}
+        accountType={accountType}
+      />
       <main className="flex-1 overflow-hidden pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] md:pb-0">
         {children}
       </main>
-      <BottomNav />
+      <BottomNav accountType={accountType} />
     </div>
   );
 }
