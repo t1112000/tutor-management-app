@@ -660,7 +660,7 @@ export default function CalendarClient() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "auto" }}>
       {/* Sticky header */}
       <div
         style={{
@@ -774,6 +774,9 @@ export default function CalendarClient() {
               borderBottom: "1px solid #F4D8DE",
               background: "white",
               flexShrink: 0,
+              position: "sticky",
+              top: "64px",
+              zIndex: 9,
             }}
           >
             {days.map((day, i) => {
@@ -832,7 +835,6 @@ export default function CalendarClient() {
           <div
             style={{
               flex: 1,
-              overflowY: "auto",
               padding: "12px 16px",
               display: "flex",
               flexDirection: "column",
@@ -983,7 +985,7 @@ export default function CalendarClient() {
               display: "flex",
               borderBottom: "1px solid #F4D8DE",
               position: "sticky",
-              top: 0,
+              top: "64px",
               background: "#FFF8FA",
               zIndex: 5,
             }}
