@@ -65,25 +65,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         attempts.delete(email);
-        return { id: String(user.id), email: user.email, name: user.name, image: user.image };
+        return {
+          id: String(user.id),
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          accountType: user.accountType,
+        };
       },
     }),
   ],
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
-  callbacks: {
-    ...authConfig.callbacks,
-    async jwt({ token, user }) {
-      if (user?.id) token.uid = Number(user.id);
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.uid) {
-        // next-auth's built-in user type declares `id: string`, so the numeric id
-        // from our augmentation intersects to `never`. The cast is unavoidable
-        // here; reads elsewhere go through requireUser()'s SessionUser type.
-        (session.user as { id: number }).id = token.uid;
-      }
-      return session;
-    },
-  },
+  // jwt/session/authorized all come from authConfig.callbacks — see auth.config.ts.
 });

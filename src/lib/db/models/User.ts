@@ -3,6 +3,8 @@ import {
   CreationOptional, Sequelize,
 } from "sequelize";
 
+export type AccountType = "tutor" | "reseller";
+
 export class User extends Model<
   InferAttributes<User>,
   InferCreationAttributes<User>
@@ -16,6 +18,7 @@ export class User extends Model<
   declare notificationEmail: string | null;
   declare pushEnabled: CreationOptional<boolean>;
   declare emailEnabled: CreationOptional<boolean>;
+  declare accountType: CreationOptional<AccountType>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -32,6 +35,11 @@ export function initUser(sequelize: Sequelize) {
       notificationEmail: { type: DataTypes.STRING, allowNull: true },
       pushEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
       emailEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+      accountType: {
+        type: DataTypes.ENUM("tutor", "reseller"),
+        allowNull: false,
+        defaultValue: "tutor",
+      },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
     },

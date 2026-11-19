@@ -90,6 +90,13 @@ export const pushSubscriptionSchema = z.object({
   }),
 });
 
+export const signupSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+  name: z.string().min(1, "Tên không được để trống"),
+  accountType: z.enum(["tutor", "reseller"]),
+});
+
 export const profileSchema = z.object({
   name: z.string().min(1, "Tên không được để trống").max(120),
 });

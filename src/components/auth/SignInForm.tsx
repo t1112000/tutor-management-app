@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { User, Lock, Loader2 } from "lucide-react";
 
 export default function SignInForm() {
@@ -144,16 +145,24 @@ export default function SignInForm() {
           </button>
         </form>
 
-        <div style={{ textAlign: "center", fontSize: "12px", color: "#A87888" }}>
-          Quên mật khẩu?{" "}
-          <a
-            href="https://www.facebook.com/yuumiiiiiiii/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#E8788A", fontWeight: 600, cursor: "pointer", textDecoration: "none" }}
-          >
-            Liên hệ hỗ trợ
-          </a>
+        <div style={{ textAlign: "center", fontSize: "12px", color: "#A87888", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <span>
+            Quên mật khẩu?{" "}
+            <a
+              href="https://www.facebook.com/yuumiiiiiiii/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#E8788A", fontWeight: 600, cursor: "pointer", textDecoration: "none" }}
+            >
+              Liên hệ hỗ trợ
+            </a>
+          </span>
+          <span>
+            Chưa có tài khoản?{" "}
+            <Link href="/signup" style={{ color: "#E8788A", fontWeight: 600, textDecoration: "none" }}>
+              Đăng ký
+            </Link>
+          </span>
         </div>
       </div>
     </div>
