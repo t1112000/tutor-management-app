@@ -30,6 +30,7 @@ export interface StudentDetail {
   parentPhone: string | null
   color: string | null
   type: 'offline' | 'online'
+  deletedAt?: string | null
   schedules: Schedule[]
   bills: BillSummary[]
 }

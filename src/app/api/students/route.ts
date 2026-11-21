@@ -12,9 +12,10 @@ export async function GET(req: NextRequest) {
   if (response) return response;
 
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const onlyDeleted = req.nextUrl.searchParams.get("deleted") === "1";
   const where: WhereOptions = {
     createdBy: user.id,
-    deletedAt: null,
+    deletedAt: onlyDeleted ? { [Op.ne]: null } : null,
     // The search box promises name / phone lookup, so search all three.
     ...(q
       ? {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       { model: StudentSchedule, as: "schedules" },
       { model: Bill, as: "bills", attributes: ["id"], where: { deletedAt: null }, required: false },
     ],
-    order: [["name", "ASC"]],
+    order: onlyDeleted ? [["deletedAt", "DESC"]] : [["name", "ASC"]],
   });
   return NextResponse.json(students);
 }

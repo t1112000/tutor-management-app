@@ -19,7 +19,12 @@ function toInput(bills: Bill[]): ReportBillInput[] {
     totalAmount: b.totalAmount,
     startDate: b.startDate,
     student: b.student
-      ? { id: b.student.id, name: b.student.name, subject: b.student.subject }
+      ? {
+          id: b.student.id,
+          name: b.student.name,
+          subject: b.student.subject,
+          deleted: b.student.deletedAt != null,
+        }
       : null,
     sessions: (b.sessions ?? []).map((s) => ({
       scheduledDate: s.scheduledDate,
@@ -32,9 +37,10 @@ const billInclude = [
   {
     model: Student,
     as: "student" as const,
-    where: { deletedAt: null },
+    // No deletedAt filter on purpose: soft-deleting a student must not remove
+    // their historical invoices from revenue / attendance totals.
     required: true,
-    attributes: ["id", "name", "subject"],
+    attributes: ["id", "name", "subject", "deletedAt"],
   },
   // All sessions: month attribution uses earliest session when startDate is null.
   { model: BillSession, as: "sessions" as const, attributes: ["scheduledDate", "isAttended"] },

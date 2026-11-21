@@ -11,7 +11,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (response) return response;
   const { id } = await params;
 
+  // Deleted students stay viewable (read-only) so their billing history is reachable.
   const student = await findOwnedStudent(user.id, id, {
+    includeDeleted: true,
     include: [
       { model: StudentSchedule, as: "schedules" },
       {
@@ -53,7 +55,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const student = await findOwnedStudent(user.id, id);
   if (!student) return jsonError(404, "Không tìm thấy học sinh");
 
-  // Soft delete. This used to hard-destroy every invoice (including already
+  // Soft delete. Existing bills/sessions are kept and stay in reports. This used to hard-destroy every invoice (including already
   // soft-deleted ones) and every session in a loop with no transaction, which
   // permanently erased paid financial records with no way back.
   await student.update({ deletedAt: new Date() });

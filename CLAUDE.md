@@ -49,6 +49,10 @@ Data model:
 
 `Student` and `Bill` are soft-deleted (`deletedAt`) and neither model is `paranoid`, so **every** query must filter `deletedAt: null` itself — the ownership helpers do this for you.
 
+Soft-deleting a student hides them from forward-looking views only (student list, calendar sessions from today onward, fixed schedule, new bills, reminders). Historical/financial views (reports, bill detail, past calendar days) **keep** the student's bills and mark the student as deleted — never add `where: { deletedAt: null }` to the `student` include in those queries. Deleted students are listed with `GET /api/students?deleted=1` and restored with `POST /api/students/:id/restore`.
+
+Unauthenticated redirects are built in `auth.config.ts` from the public host (`x-forwarded-host`/`Host`, see `src/lib/public-url.ts`) with a relative `callbackUrl`, because the standalone server sees `0.0.0.0:3000` behind the proxy.
+
 Invoices are attributed to exactly one month (`billMonth()` in `src/lib/report.ts`: start date, else earliest session), so an invoice spanning two months is not counted twice. Monthly report: `GET /api/report?month=YYYY-MM`. All-time totals + bill list + chart series: `GET /api/report?scope=all` via `computeAllTimeReport()`. Report charts use pinned `@tanstack/charts` (client-only components under `src/components/report/charts/`).
 
 ### Timezones
