@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ServiceWorkerRegistrar } from "@/components/providers/ServiceWorkerRegistrar";
+import { VersionWatcher } from "@/components/providers/VersionWatcher";
+import { getBuildId } from "@/lib/build-id";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -54,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </QueryProvider>
         <ServiceWorkerRegistrar />
+        <VersionWatcher buildId={getBuildId()} />
         <Toaster position="top-right" richColors />
       </body>
     </html>
