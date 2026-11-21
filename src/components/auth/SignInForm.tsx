@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { User, Lock, Loader2 } from "lucide-react";
 
-export default function SignInForm() {
+export default function SignInForm({ callbackUrl = "/" }: { callbackUrl?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +22,7 @@ export default function SignInForm() {
       if (result?.error) {
         setError("Email hoặc mật khẩu không đúng.");
       } else {
-        router.push("/");
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch {
