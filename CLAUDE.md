@@ -33,6 +33,10 @@ NextAuth v5 with credentials provider (email + bcrypt password). Auth lives in `
 
 Every API route starts with `requireUser()` from `src/lib/auth-helpers.ts`, then reaches data **only** through `findOwnedStudent()` / `findOwnedBill()` from the same file — never a bare `findByPk`. Both scope by `createdBy` and filter `deletedAt`. Mutating routes parse their body with `parseBody(req, schema)`, and every error response is `{ error: string }` via `jsonError()`.
 
+### Deploys and open clients
+
+The root layout passes Next's build id (`getBuildId()` in `src/lib/build-id.ts`, read from `.next/BUILD_ID`) to `VersionWatcher`, which compares it with `GET /api/version` when the app regains focus, on taps, and every 5 minutes, and calls `location.reload()` on a mismatch. Without it, an installed PWA that was open during a deploy turns every `<Link>` tap into a full page load, which iOS standalone opens as an in-app browser sheet. `/api/version` is intentionally unauthenticated.
+
 ### Page pattern
 
 Server Component pages in `src/app/(dashboard)/` do a minimal auth check, then render a `*Client` component (e.g. `StudentsPage` → `StudentsClient`). Client components fetch **only** through the TanStack Query hooks in `src/hooks/queries/`, which go through `api()` in `src/lib/api-client.ts` — raw `fetch()` in a component skips cache invalidation and error unwrapping.
