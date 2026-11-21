@@ -6,7 +6,16 @@ import { SubjectBadge } from "@/components/ui/subject-badge";
 import { QueryErrorState } from "@/components/ui/query-error";
 import AddStudentDialog from "./AddStudentDialog";
 import useIsMobile from "@/hooks/use-is-mobile";
-import { useStudents } from "@/hooks/queries/use-students";
+import { toast } from "sonner";
+import { Trash2, RotateCcw } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  useStudents, useDeleteStudentById, useRestoreStudent, type Student,
+} from "@/hooks/queries/use-students";
 
 const AVATAR_COLORS = [
   "#6BA8F0", "#F07888", "#7ECBA0", "#B088F0",
@@ -39,6 +48,8 @@ export default function StudentsClient() {
   const [inputValue, setInputValue] = useState("");
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [toDelete, setToDelete] = useState<Student | null>(null);
 
   // Debounce the search query 300ms
   useEffect(() => {
@@ -46,7 +57,31 @@ export default function StudentsClient() {
     return () => clearTimeout(t);
   }, [inputValue]);
 
-  const { data: students = [], isLoading: loading, isError, refetch } = useStudents(q);
+  const { data: students = [], isLoading: loading, isError, refetch } = useStudents(q, showDeleted);
+  const { mutate: deleteStudent, isPending: deleting } = useDeleteStudentById();
+  const { mutate: restoreStudent, isPending: restoring } = useRestoreStudent();
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    deleteStudent(toDelete.id, {
+      onSuccess: () => toast.success("Đã xoá học sinh"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Xoá học sinh thất bại"),
+      onSettled: () => setToDelete(null),
+    });
+  }
+
+  function restore(id: number) {
+    restoreStudent(id, {
+      onSuccess: () => toast.success("Đã khôi phục học sinh"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Khôi phục thất bại"),
+    });
+  }
+
+  const emptyText = showDeleted ? "Không có học sinh nào đã xoá" : "Chưa có học sinh nào";
+  const iconBtn = (color: string, bg: string, border: string): React.CSSProperties => ({
+    width: 30, height: 30, borderRadius: "50%", background: bg, border: `1px solid ${border}`,
+    cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color,
+  });
 
   function onSearch(value: string) {
     setInputValue(value);
@@ -77,6 +112,24 @@ export default function StudentsClient() {
 
       {/* Body */}
       <div style={{ padding: isMobile ? "16px 16px" : "24px 32px" }}>
+        {/* Active / deleted toggle */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+          {([[false, "Đang học"], [true, "Đã xoá"]] as const).map(([val, label]) => (
+            <button
+              key={label}
+              onClick={() => setShowDeleted(val)}
+              style={{
+                padding: "6px 14px", borderRadius: "9999px", fontSize: "13px", fontWeight: 500, cursor: "pointer",
+                border: "1px solid #F4D8DE",
+                background: showDeleted === val ? "#E8788A" : "white",
+                color: showDeleted === val ? "white" : "#6B4858",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Search */}
         <div style={{ marginBottom: "18px", display: "flex", gap: "12px" }}>
           <div style={{ position: "relative", maxWidth: isMobile ? "none" : "340px", flex: 1 }}>
@@ -103,7 +156,7 @@ export default function StudentsClient() {
             ) : isError ? (
               <QueryErrorState message="Không tải được danh sách học sinh" onRetry={() => refetch()} compact />
             ) : !students.length ? (
-              <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Chưa có học sinh nào</div>
+              <div style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>{emptyText}</div>
             ) : students.map((s) => (
               <div
                 key={s.id}
@@ -131,7 +184,15 @@ export default function StudentsClient() {
                   {(s.bills?.length ?? 0) > 0 && (
                     <span style={{ fontSize: "12px", color: "#A87888" }}>{s.bills?.length} hóa đơn</span>
                   )}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C0A0A8" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  {showDeleted ? (
+                    <button aria-label="Khôi phục" title="Khôi phục" disabled={restoring}
+                      onClick={(e) => { e.stopPropagation(); restore(s.id); }}
+                      style={iconBtn("#1a8a3c", "#F0FDF4", "#BBF7D0")}><RotateCcw size={14} /></button>
+                  ) : (
+                    <button aria-label="Xoá học sinh" title="Xoá học sinh"
+                      onClick={(e) => { e.stopPropagation(); setToDelete(s); }}
+                      style={iconBtn("#E11D48", "#FFF1F2", "#FECDD3")}><Trash2 size={14} /></button>
+                  )}
                 </div>
               </div>
             ))}
@@ -152,7 +213,7 @@ export default function StudentsClient() {
                 ) : isError ? (
                   <tr><td colSpan={5}><QueryErrorState message="Không tải được danh sách học sinh" onRetry={() => refetch()} compact /></td></tr>
                 ) : !students.length ? (
-                  <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>Chưa có học sinh nào</td></tr>
+                  <tr><td colSpan={5} style={{ padding: "32px", textAlign: "center", fontSize: "13px", color: "#A87888" }}>{emptyText}</td></tr>
                 ) : students.map((s) => (
                   <tr
                     key={s.id}
@@ -173,12 +234,25 @@ export default function StudentsClient() {
                     <td style={{ padding: "13px 16px", fontSize: "13px", color: "#6B4858", fontFamily: "monospace" }}>{s.phone ?? "—"}</td>
                     <td style={{ padding: "13px 16px", fontSize: "14px", color: "#6B4858" }}>{s.bills?.length ?? 0} hóa đơn</td>
                     <td style={{ padding: "13px 16px" }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); router.push(`/students/${s.id}`); }}
-                        style={{ fontSize: "13px", color: "#E8788A", background: "none", border: "none", cursor: "pointer", fontWeight: 500, padding: 0 }}
-                      >
-                        Xem chi tiết →
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); router.push(`/students/${s.id}`); }}
+                          style={{ fontSize: "13px", color: "#E8788A", background: "none", border: "none", cursor: "pointer", fontWeight: 500, padding: 0 }}
+                        >
+                          Xem chi tiết →
+                        </button>
+                        {showDeleted ? (
+                          <button aria-label="Khôi phục" title="Khôi phục" disabled={restoring}
+                            onClick={(e) => { e.stopPropagation(); restore(s.id); }}
+                            style={{ ...iconBtn("#1a8a3c", "#F0FDF4", "#BBF7D0"), width: "auto", borderRadius: 9999, padding: "0 10px", gap: 4, fontSize: 12 }}>
+                            <RotateCcw size={13} /> Khôi phục
+                          </button>
+                        ) : (
+                          <button aria-label="Xoá học sinh" title="Xoá học sinh"
+                            onClick={(e) => { e.stopPropagation(); setToDelete(s); }}
+                            style={iconBtn("#E11D48", "#FFF1F2", "#FECDD3")}><Trash2 size={14} /></button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -187,6 +261,28 @@ export default function StudentsClient() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={toDelete !== null} onOpenChange={(o) => { if (!o) setToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá học sinh {toDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Học sinh sẽ được ẩn khỏi danh sách, lịch dạy và nhắc lịch. Các hóa đơn đã có vẫn được giữ lại
+              trong báo cáo và lịch sử. Bạn có thể khôi phục lại ở tab &quot;Đã xoá&quot;.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              style={{ background: "#E11D48", color: "white" }}
+            >
+              Xoá
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AddStudentDialog
         open={showAdd}

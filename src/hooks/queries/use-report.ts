@@ -8,6 +8,7 @@ export interface StudentReport {
   studentId: number;
   name: string;
   subject: ReportSubject;
+  deleted?: boolean;
   paid: number;
   unpaid: number;
   total: number;
@@ -28,6 +29,7 @@ export interface BillReportRow {
   id: number;
   studentId: number;
   studentName: string;
+  studentDeleted?: boolean;
   subject: ReportSubject;
   status: "unpaid" | "paid";
   totalAmount: number;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SubjectBadge } from "@/components/ui/subject-badge";
 import { QueryErrorState } from "@/components/ui/query-error";
 import { formatMoneyVND } from "@/lib/time";
+import { DeletedTag } from "@/components/ui/deleted-tag";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useAllTimeReport, useReport, type BillReportRow } from "@/hooks/queries/use-report";
 import { ReportStatusChart } from "@/components/report/charts/ReportStatusChart";
@@ -259,7 +260,7 @@ function BillsList({ bills, isMobile }: { bills: BillReportRow[]; isMobile: bool
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
               <div>
-                <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820" }}>{b.studentName}</div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820" }}>{b.studentName}{b.studentDeleted && <DeletedTag />}</div>
                 <SubjectBadge subject={b.subject} />
               </div>
               <div style={{ fontSize: "15px", fontWeight: 700, color: "#2C1820" }}>{formatMoneyVND(b.totalAmount)}</div>
@@ -292,7 +293,7 @@ function BillsList({ bills, isMobile }: { bills: BillReportRow[]; isMobile: bool
           <tr key={b.id} style={{ borderTop: "1px solid #F4D8DE" }}>
             <td style={{ padding: "12px 16px" }}>
               <Link href={`/bills/${b.id}`} style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820", textDecoration: "none" }}>
-                {b.studentName}
+                {b.studentName}{b.studentDeleted && <DeletedTag />}
               </Link>
             </td>
             <td style={{ padding: "12px 16px" }}><SubjectBadge subject={b.subject} /></td>
@@ -320,6 +321,7 @@ function StudentsTable({
     studentId: number;
     name: string;
     subject: "english" | "chinese";
+    deleted?: boolean;
     paid: number;
     unpaid: number;
     total: number;
@@ -341,7 +343,7 @@ function StudentsTable({
                       {s.name.split(" ").slice(-1)[0]?.[0]?.toUpperCase() ?? "?"}
                     </div>
                     <div>
-                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820" }}>{s.name}</div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#2C1820" }}>{s.name}{s.deleted && <DeletedTag />}</div>
                       <SubjectBadge subject={s.subject} />
                     </div>
                   </div>
@@ -386,7 +388,7 @@ function StudentsTable({
                 <div style={{ width: "28px", height: "28px", borderRadius: "9999px", background: "rgba(59,111,212,0.13)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b6fd4", fontSize: "11px", fontWeight: 700, flexShrink: 0 }}>
                   {s.name.split(" ").slice(-1)[0]?.[0]?.toUpperCase() ?? "?"}
                 </div>
-                <span style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820" }}>{s.name}</span>
+                <span style={{ fontSize: "13px", fontWeight: 500, color: "#2C1820" }}>{s.name}{s.deleted && <DeletedTag />}</span>
               </div>
             </td>
             <td style={{ padding: "12px 16px" }}><SubjectBadge subject={s.subject} /></td>

@@ -3,7 +3,7 @@ export interface ReportBillInput {
   status: "unpaid" | "paid";
   totalAmount: number | string;
   startDate: string | null;
-  student: { id: number; name: string; subject: string } | null;
+  student: { id: number; name: string; subject: string; deleted?: boolean } | null;
   sessions: Array<{ scheduledDate: string; isAttended: boolean }>;
 }
 
@@ -11,6 +11,8 @@ export interface StudentReportRow {
   studentId: number;
   name: string;
   subject: string;
+  /** Student was soft-deleted; their invoices still count in history. */
+  deleted: boolean;
   paid: number;
   unpaid: number;
   total: number;
@@ -31,6 +33,7 @@ export interface BillReportRow {
   id: number;
   studentId: number;
   studentName: string;
+  studentDeleted: boolean;
   subject: string;
   status: "unpaid" | "paid";
   totalAmount: number;
@@ -90,12 +93,13 @@ export function statusBreakdown(paid: number, unpaid: number): StatusBreakdownRo
 }
 
 function emptyStudentRow(
-  student: { id: number; name: string; subject: string }
+  student: { id: number; name: string; subject: string; deleted?: boolean }
 ): StudentReportRow {
   return {
     studentId: student.id,
     name: student.name,
     subject: student.subject,
+    deleted: student.deleted ?? false,
     paid: 0,
     unpaid: 0,
     total: 0,
@@ -152,7 +156,7 @@ export function computeMonthlyReport(bills: ReportBillInput[], month: string): M
 }
 
 /**
- * All non-deleted invoices for a tutor: grand totals, per-student rows,
+ * All non-deleted invoices for a tutor (including those of soft-deleted students): grand totals, per-student rows,
  * individual bill rows, and monthly buckets for charts.
  */
 export function computeAllTimeReport(bills: ReportBillInput[]): AllTimeReport {
@@ -213,6 +217,7 @@ export function computeAllTimeReport(bills: ReportBillInput[]): AllTimeReport {
       id: bill.id,
       studentId: student.id,
       studentName: student.name,
+      studentDeleted: student.deleted ?? false,
       subject: student.subject,
       status: bill.status,
       totalAmount: amount,

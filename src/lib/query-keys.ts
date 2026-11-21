@@ -1,7 +1,7 @@
 export const keys = {
   students: {
     all:    ()           => ['students'] as const,
-    list:   (q = '')     => ['students', 'list', q] as const,
+    list:   (q = '', deleted = false) => ['students', 'list', q, deleted] as const,
     detail: (id: number) => ['students', id] as const,
   },
   bills: {

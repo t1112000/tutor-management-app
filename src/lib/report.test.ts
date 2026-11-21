@@ -252,3 +252,25 @@ describe("computeAllTimeReport", () => {
     expect(report.total).toBe(500000);
   });
 });
+
+describe("soft-deleted students", () => {
+  const gone = { id: 2, name: "Bình", subject: "chinese", deleted: true };
+
+  it("keeps their invoices in all-time totals and flags the rows", () => {
+    const r = computeAllTimeReport([
+      bill({ id: 1, status: "paid", totalAmount: 300000 }),
+      bill({ id: 2, status: "paid", totalAmount: 700000, student: gone }),
+    ]);
+    expect(r.paid).toBe(1000000);
+    expect(r.totalBillCount).toBe(2);
+    expect(r.students.find((s) => s.studentId === 2)?.deleted).toBe(true);
+    expect(r.bills.find((b) => b.id === 2)?.studentDeleted).toBe(true);
+    expect(r.bills.find((b) => b.id === 1)?.studentDeleted).toBe(false);
+  });
+
+  it("keeps their invoices in the monthly report", () => {
+    const r = computeMonthlyReport([bill({ id: 2, student: gone, totalAmount: 400000 })], "2026-07");
+    expect(r.total).toBe(400000);
+    expect(r.students[0].deleted).toBe(true);
+  });
+});

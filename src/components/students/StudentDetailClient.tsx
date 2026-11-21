@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useStudent, useAddSchedule, useRemoveSchedule, useEditSchedule } from "@/hooks/queries/use-student";
 import type { StudentDetail, Schedule, BillSummary } from "@/hooks/queries/use-student";
-import { useUpdateStudent, useDeleteStudent } from "@/hooks/queries/use-students";
+import { useUpdateStudent, useDeleteStudent, useRestoreStudent } from "@/hooks/queries/use-students";
 import type { StudentForm } from "@/hooks/queries/use-students";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -95,6 +95,7 @@ export default function StudentDetailClient({
   const { data: student, isError: studentError, refetch: refetchStudent } = useStudent(studentId);
   const { mutate: updateStudentMutation, isPending: saving } = useUpdateStudent(studentId);
   const { mutate: deleteStudentMutation } = useDeleteStudent(studentId);
+  const { mutate: restoreStudentMutation, isPending: restoringStudent } = useRestoreStudent();
   const { mutate: addScheduleMutation } = useAddSchedule(studentId);
   const { mutate: removeScheduleMutation } = useRemoveSchedule(studentId);
   const { mutate: editScheduleMutation } = useEditSchedule(studentId);
@@ -156,6 +157,14 @@ export default function StudentDetailClient({
     });
   }
 
+  function restoreStudent() {
+    restoreStudentMutation(studentId, {
+      onSuccess: () => toast.success("Đã khôi phục học sinh"),
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : "Khôi phục thất bại"),
+    });
+  }
+
   function removeSchedule(scheduleId: number) {
     removeScheduleMutation(scheduleId);
   }
@@ -214,6 +223,7 @@ export default function StudentDetailClient({
   }
 
   const currentColor = form.color ?? DEFAULT_COLOR;
+  const isDeleted = !!student.deletedAt;
 
   return (
     <div
@@ -263,6 +273,7 @@ export default function StudentDetailClient({
             >
               <ChevronLeft size={14} /> Học sinh
             </Link>
+{!isDeleted && (
             <Link href={`/students/${studentId}/bills/new`}>
               <button
                 style={{
@@ -282,6 +293,7 @@ export default function StudentDetailClient({
                 <Plus size={14} /> Tạo hóa đơn mới
               </button>
             </Link>
+)}
           </div>
           <div
             style={{
@@ -322,6 +334,7 @@ export default function StudentDetailClient({
               {student.name}
             </span>
           </div>
+{!isDeleted && (
           <Link href={`/students/${studentId}/bills/new`}>
             <button
               style={{
@@ -341,6 +354,29 @@ export default function StudentDetailClient({
               <Plus size={14} /> Tạo hóa đơn mới
             </button>
           </Link>
+)}
+        </div>
+      )}
+
+      {isDeleted && (
+        <div
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+            background: "#FFF1F2", borderBottom: "1px solid #FECDD3", padding: "10px 20px",
+            fontSize: 13, color: "#9F1239",
+          }}
+        >
+          <span>Học sinh này đã bị xoá. Hóa đơn và lịch sử vẫn được giữ trong báo cáo.</span>
+          <button
+            onClick={restoreStudent}
+            disabled={restoringStudent}
+            style={{
+              background: "#E8788A", color: "white", border: "none", borderRadius: 8,
+              padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            Khôi phục
+          </button>
         </div>
       )}
 
@@ -390,7 +426,7 @@ export default function StudentDetailClient({
                 flexShrink: 0,
               }}
             >
-              {!isEditing && (
+              {!isEditing && !isDeleted && (
                 <button
                   onClick={startEdit}
                   style={{
@@ -411,6 +447,7 @@ export default function StudentDetailClient({
                   <Pencil size={13} /> Chỉnh sửa
                 </button>
               )}
+{!isDeleted && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button
@@ -446,6 +483,7 @@ export default function StudentDetailClient({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+)}
             </div>
           </div>
 

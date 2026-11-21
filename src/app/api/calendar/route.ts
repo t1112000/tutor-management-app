@@ -28,9 +28,10 @@ export async function GET(req: NextRequest) {
           {
             model: Student,
             as: "student",
-            where: { deletedAt: null },
+            // Deleted students stay joined so past sessions remain in history;
+            // sessions from today onward are dropped below.
             required: true,
-            attributes: ["id", "name", "subject", "color", "type", "address"],
+            attributes: ["id", "name", "subject", "color", "type", "address", "deletedAt"],
           },
         ],
       },
@@ -40,7 +41,12 @@ export async function GET(req: NextRequest) {
 
   // Explicit DTO: this endpoint is polled every 60s, and the raw models carry
   // parent phone numbers and invoice totals the calendar never displays.
-  const slots = sessions.map((s) => ({
+  const today = todayVN();
+  const visible = sessions.filter(
+    (s) => !s.bill!.student!.deletedAt || s.scheduledDate < today
+  );
+
+  const slots = visible.map((s) => ({
     id: s.id,
     scheduledDate: s.scheduledDate,
     startTime: s.startTime,
@@ -58,6 +64,7 @@ export async function GET(req: NextRequest) {
         color: s.bill!.student!.color,
         type: s.bill!.student!.type,
         address: s.bill!.student!.address,
+        deleted: s.bill!.student!.deletedAt != null,
       },
     },
   }));
